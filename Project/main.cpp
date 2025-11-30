@@ -114,6 +114,9 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+
 	window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "OpenGL RGB Triangle", nullptr, nullptr);
 	if (!window) {
 		std::cerr << "Failed to create GLFW window\n";

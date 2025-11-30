@@ -1,5 +1,5 @@
 // Shader-ul de fragment / Fragment shader 
-#version 330 core
+#version 460
 
 in vec4 ex_Color;
 out vec4 out_Color;
