@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <string>
 
+#include "InputEnums.h"
+
 //forward declarations
 class App;
 
@@ -19,6 +21,7 @@ public:
 	bool ShouldClose() const;
 
 	GLFWwindow* GetNative() const { return window; }
+	MouseMode GetMouseMode() const;
 private:
 	static void FramebufferSizeCallback(GLFWwindow* window, int width, int height);
 

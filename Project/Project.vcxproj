@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Engine\InputManager.cpp" />
     <ClCompile Include="src\Engine\Renderer.cpp" />
     <ClCompile Include="src\Engine\App.cpp" />
     <ClCompile Include="include\external\glm\detail\glm.cpp" />
@@ -29,6 +30,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Engine\App.h" />
+    <ClInclude Include="include\Engine\InputEnums.h" />
     <ClInclude Include="include\external\assimp\aabb.h" />
     <ClInclude Include="include\external\assimp\ai_assert.h" />
     <ClInclude Include="include\external\assimp\anim.h" />
@@ -401,6 +403,7 @@
     <ClInclude Include="include\Util\loadShaders.h" />
     <ClInclude Include="include\Engine\Window.h" />
     <ClInclude Include="include\Engine\Renderer.h" />
+    <ClInclude Include="include\Engine\InputManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="include\external\assimp\color4.inl" />

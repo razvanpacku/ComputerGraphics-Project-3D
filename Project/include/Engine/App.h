@@ -2,8 +2,10 @@
 #include <cstdint>
 #include <string>
 
-#include "Engine/Window.h"
-#include "Engine/Renderer.h"
+//forward declarations
+class InputManager;
+class Window;
+class Renderer;
 
 #define WINDOW_WIDTH 1000
 #define WINDOW_HEIGHT 1000
@@ -44,5 +46,6 @@ class AppAttorney {
 
 	friend class Window;
 	friend class Renderer;
+	friend class InputManager;
 };
 

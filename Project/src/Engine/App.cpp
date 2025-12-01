@@ -1,16 +1,50 @@
 #include "Engine/App.h"
 
+#include "Engine/Window.h"
+#include "Engine/Renderer.h"
+#include "Engine/InputManager.h"
+
 #include <chrono>
+#include <iostream>
 
 int32_t App::argc = 0;
 char** App::argv = nullptr;
+
+void KeyCallback(GLFWwindow*, int key, int sc, int action, int mods) {
+	InputManager::Get().ProcessKey(key, action);
+}
+
+void MouseCallback(GLFWwindow*, int button, int action, int mods) {
+	InputManager::Get().ProcessMouseButton(button, action);
+}
+
+void CursorPosCallback(GLFWwindow*, double x, double y) {
+	InputManager::Get().ProcessMouseMove(x, y);
+}
+
+void ScrollCallback(GLFWwindow*, double xoff, double yoff) {
+	InputManager::Get().ProcessMouseScroll(xoff, yoff);
+}
 
 App::App(const std::string& name, uint16_t width, uint16_t height) : name(name)
 {
 	srand(static_cast<unsigned int>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
 
+	//init InputManager with this app
+	InputManager::setApp(this);
+
 	window = new Window(width, height, name, argc, argv, *this);
 	renderer = new Renderer(*this);
+
+	glfwSetKeyCallback(window->GetNative(), KeyCallback);
+	glfwSetMouseButtonCallback(window->GetNative(), MouseCallback);
+	glfwSetCursorPosCallback(window->GetNative(), CursorPosCallback);
+	glfwSetScrollCallback(window->GetNative(), ScrollCallback);
+
+	auto con = InputManager::Get().BindKey(GLFW_KEY_ESCAPE, InputEventType::Pressed, [this]() {
+		this->window->PollEvents();
+		glfwSetWindowShouldClose(this->window->GetNative(), true);
+		});
 }
 
 App::~App()
@@ -35,8 +69,8 @@ void App::Run()
 {
 	while(!window->ShouldClose())
 	{
-		if (glfwGetKey(window->GetNative(), GLFW_KEY_ESCAPE) == GLFW_PRESS)
-			glfwSetWindowShouldClose(window->GetNative(), true);
+
+		InputManager::Get().Update();
 
 		renderer->Render();
 

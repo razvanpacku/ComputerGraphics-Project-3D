@@ -1,6 +1,7 @@
 #include "Engine/Window.h"
 
 #include "Engine/App.h"	
+#include "Engine/Renderer.h"
 
 #include <iostream>
 
@@ -28,6 +29,9 @@ Window::Window(uint16_t width, uint16_t height, const std::string& name, int32_t
 	glfwSetWindowUserPointer(window, &app);
 
 	glfwSetFramebufferSizeCallback(window, FramebufferSizeCallback);
+
+	if (glfwRawMouseMotionSupported())
+		glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
 
 	// Load OpenGL functions with GLAD
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
@@ -66,4 +70,13 @@ void Window::FramebufferSizeCallback(GLFWwindow* window, int width, int height)
 	glViewport(0, 0, width, height);
 	AppAttorney::GetRenderer(app).Render();
 	AppAttorney::GetWindow(app).SwapBuffers();
+}
+
+MouseMode Window::GetMouseMode() const {
+	int mode = glfwGetInputMode(window, GLFW_CURSOR);
+	if (mode == GLFW_CURSOR_HIDDEN)
+		return MouseMode::Hidden;
+	if (mode == GLFW_CURSOR_DISABLED)
+		return MouseMode::Disabled;
+	return MouseMode::Normal;
 }
