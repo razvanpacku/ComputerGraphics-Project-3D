@@ -22,12 +22,22 @@ public:
 
 	GLFWwindow* GetNative() const { return window; }
 	MouseMode GetMouseMode() const;
+	void SetMouseMode(MouseMode mode);
+
+	void ToggleFullscreen();
 private:
 	static void FramebufferSizeCallback(GLFWwindow* window, int width, int height);
 
+	bool isFullscreen = false;
+
 	App& app;
 
+	MouseMode mouseMode = MouseMode::Normal;
+
 	uint16_t width, height;
+	uint16_t windowPosX, windowPosY;
 	GLFWwindow* window;
+	GLFWmonitor* monitor;
+	const GLFWvidmode* videoMode;
 };
 

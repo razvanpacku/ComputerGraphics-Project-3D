@@ -41,10 +41,14 @@ App::App(const std::string& name, uint16_t width, uint16_t height) : name(name)
 	glfwSetCursorPosCallback(window->GetNative(), CursorPosCallback);
 	glfwSetScrollCallback(window->GetNative(), ScrollCallback);
 
-	auto con = InputManager::Get().BindKey(GLFW_KEY_ESCAPE, InputEventType::Pressed, [this]() {
+	InputManager::Get().BindKey(GLFW_KEY_ESCAPE, InputEventType::Pressed, [this]() {
 		this->window->PollEvents();
 		glfwSetWindowShouldClose(this->window->GetNative(), true);
 		});
+	InputManager::Get().BindKey(GLFW_KEY_F11, InputEventType::Pressed, [this]() {
+		this->window->ToggleFullscreen();
+		});
+	
 }
 
 App::~App()
