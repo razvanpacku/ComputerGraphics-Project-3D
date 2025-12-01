@@ -5,6 +5,9 @@
     <ClCompile Include="src\glad.c" />
     <ClCompile Include="include\external\glm\detail\glm.cpp" />
     <ClCompile Include="src\Util\loadShaders.cpp" />
+    <ClCompile Include="src\Engine\App.cpp" />
+    <ClCompile Include="src\Engine\Window.cpp" />
+    <ClCompile Include="src\Engine\Renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\external\assimp\Compiler\poppack1.h" />
@@ -377,6 +380,9 @@
     <ClInclude Include="include\external\KHR\khrplatform.h" />
     <ClInclude Include="include\external\stb_image.h" />
     <ClInclude Include="include\Util\loadShaders.h" />
+    <ClInclude Include="include\Engine\App.h" />
+    <ClInclude Include="include\Engine\Window.h" />
+    <ClInclude Include="include\Engine\Renderer.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="include\external\assimp\color4.inl" />
