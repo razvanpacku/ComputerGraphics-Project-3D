@@ -2,6 +2,7 @@
 
 #include "Engine/App.h"
 #include "Engine/Window.h"
+#include "Engine/Resources/ResourceManager.h"
 
 //glm for transformations
 #include <glm/glm.hpp>
@@ -10,14 +11,16 @@
 
 #include <iostream>
 
+auto& _rm = ResourceManager::Get();
+
 // temporary functions
 
 GLuint
 VaoId,
 VboId,
-ColorBufferId,
-RotationLocation,
-ProgramId;
+ColorBufferId;
+
+ShaderManager::Handle shaderHandle;
 
 float angle = 0.0f;
 
@@ -74,36 +77,55 @@ void DestroyVBO(void)
 
 void CreateShaders(void)
 {
-	ProgramId = LoadShaders("resources/shaders/example/example.vert", "resources/shaders/example/example.frag");
-	glUseProgram(ProgramId);
+	//ProgramId = LoadShaders("resources/shaders/example/example.vert", "resources/shaders/example/example.frag");
+	/*
+	shader = _rm.shaders.LoadFromFiles(
+		"resources/shaders/example/example.vert",
+		"resources/shaders/example/example.frag");
+	_rm.shaders.UseShader(shader);
+	*/
+	shaderHandle = _rm.shaders.Load(
+		"SimpleShader",
+		ShaderResourceInfo{
+			"resources/shaders/example/example.vert",
+			"resources/shaders/example/example.frag"
+		});
+	
+	_rm.shaders.UseShader(shaderHandle);
 }
 void DestroyShaders(void)
 {
-	glDeleteProgram(ProgramId);
+	_rm.shaders.Remove(shaderHandle);
 }
 
 void Initialize(void)
 {
 	CreateVBO();
 	CreateShaders();
-
-	RotationLocation = glGetUniformLocation(ProgramId, "rotation");
 }
 void RenderFunction(void)
 {
 	angle += 1.f * App::Get().DeltaTime();
 
 	auto& win = AppAttorney::GetWindow(App::Get());
-	uint16_t width = win.GetWidth();
-	uint16_t height = win.GetHeight();
-
-	double ratio = (double)width / (double)height;
+	double ratio = 1.0;
+	if(win.IsFullscreen())
+	{
+		ratio = (double)win.GetMonitorWidth() / (double)win.GetMonitorHeight();
+	}
+	else
+	{
+		ratio = (double)win.GetWidth() / (double)win.GetHeight();
+	}
 
 	glm::mat4 view = glm::ortho(-ratio, ratio, -1., 1.);
 	
 	glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 0.0f, 1.0f));
 	glm::mat4 mat = view * rotation;
-	glUniformMatrix4fv(RotationLocation, 1, GL_FALSE, glm::value_ptr(mat));
+
+	auto shader = _rm.shaders.Get(shaderHandle);
+	shader->SetUniform("rotation", mat);
+	
 
 	//Drawing function
 	glDrawArrays(GL_TRIANGLES, 0, 3);

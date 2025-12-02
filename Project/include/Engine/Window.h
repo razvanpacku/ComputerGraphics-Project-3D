@@ -24,6 +24,9 @@ public:
 	MouseMode GetMouseMode() const;
 	uint16_t GetWidth() const { return width; }
 	uint16_t GetHeight() const { return height; }
+	uint16_t GetMonitorWidth() const { return videoMode->width; }
+	uint16_t GetMonitorHeight() const { return videoMode->height; }
+	bool IsFullscreen() const { return isFullscreen; }
 	void SetMouseMode(MouseMode mode);
 
 	void ToggleFullscreen();
