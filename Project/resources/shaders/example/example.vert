@@ -7,8 +7,10 @@ layout (location = 1) in vec4 in_Color;
 out vec4 gl_Position; 
 out vec4 ex_Color;
 
+uniform mat4 rotation;
+
 void main ()
 {
-   gl_Position = in_Position;
+   gl_Position = rotation * in_Position;
    ex_Color = in_Color;
 }

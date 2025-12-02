@@ -48,7 +48,6 @@ App::App(const std::string& name, uint16_t width, uint16_t height) : name(name)
 	InputManager::Get().BindKey(GLFW_KEY_F11, InputEventType::Pressed, [this]() {
 		this->window->ToggleFullscreen();
 		});
-	
 }
 
 App::~App()
@@ -73,8 +72,11 @@ void App::Run()
 {
 	while(!window->ShouldClose())
 	{
-
+		float currentFrame = glfwGetTime();
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
 		InputManager::Get().Update();
+		//update game logic here
 
 		renderer->Render();
 

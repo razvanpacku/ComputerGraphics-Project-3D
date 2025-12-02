@@ -22,6 +22,8 @@ public:
 
 	GLFWwindow* GetNative() const { return window; }
 	MouseMode GetMouseMode() const;
+	uint16_t GetWidth() const { return width; }
+	uint16_t GetHeight() const { return height; }
 	void SetMouseMode(MouseMode mode);
 
 	void ToggleFullscreen();

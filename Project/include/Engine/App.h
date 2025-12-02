@@ -16,6 +16,8 @@ public:
 	static void Init(int32_t argc, char** argv);
 	static App& Get(const std::string& name = "", uint16_t width = WINDOW_WIDTH, uint16_t height = WINDOW_HEIGHT);
 
+	float DeltaTime() const { return deltaTime; }
+
 	void Run();
 private:
 	App(const std::string& name, uint16_t width, uint16_t height);
@@ -31,6 +33,9 @@ private:
 
 	Window* window;
 	Renderer* renderer;
+
+	float lastFrame = 0.0f;
+	float deltaTime = 0.0f;
 
 	friend class AppAttorney;
 };

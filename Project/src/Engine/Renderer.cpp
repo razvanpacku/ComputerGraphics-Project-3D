@@ -1,6 +1,14 @@
 #include "Engine/Renderer.h"
 
 #include "Engine/App.h"
+#include "Engine/Window.h"
+
+//glm for transformations
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
+#include <iostream>
 
 // temporary functions
 
@@ -8,15 +16,18 @@ GLuint
 VaoId,
 VboId,
 ColorBufferId,
+RotationLocation,
 ProgramId;
+
+float angle = 0.0f;
 
 void CreateVBO(void)
 {
 	// vertices 
 	GLfloat Vertices[] = {
-		0.0f,  0.75f, 0.0f, 1.0f,
-		0.866025f, -0.75f, 0.0f, 1.0f,
-		-0.866025f, -0.75f, 0.0f, 1.0f,
+		0.0f,  1.0f, 0.0f, 1.0f,
+		0.866025f, -0.5f, 0.0f, 1.0f,
+		-0.866025f, -0.5f, 0.0f, 1.0f,
 	};
 
 	// colors of the vertices
@@ -75,9 +86,24 @@ void Initialize(void)
 {
 	CreateVBO();
 	CreateShaders();
+
+	RotationLocation = glGetUniformLocation(ProgramId, "rotation");
 }
 void RenderFunction(void)
 {
+	angle += 1.f * App::Get().DeltaTime();
+
+	auto& win = AppAttorney::GetWindow(App::Get());
+	uint16_t width = win.GetWidth();
+	uint16_t height = win.GetHeight();
+
+	double ratio = (double)width / (double)height;
+
+	glm::mat4 view = glm::ortho(-ratio, ratio, -1., 1.);
+	
+	glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 0.0f, 1.0f));
+	glm::mat4 mat = view * rotation;
+	glUniformMatrix4fv(RotationLocation, 1, GL_FALSE, glm::value_ptr(mat));
 
 	//Drawing function
 	glDrawArrays(GL_TRIANGLES, 0, 3);
