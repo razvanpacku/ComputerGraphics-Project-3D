@@ -2,6 +2,7 @@
 #include <glad/glad.h>
 
 #include "Util/loadShaders.h"
+#include "Engine/Resources/ResourceManager.h"
 
 #define DEFAULT_CLEAR_COLOR_R 0.0f
 #define DEFAULT_CLEAR_COLOR_G 0.0f
@@ -20,6 +21,18 @@ public:
 private:
 	void Clear() const;
 
+	void BindTextureToUniform(const char* uniform, TextureManager::Handle h, Shader* shader);
+
 	App& app;
+	ResourceManager& _rm;
+
+	// Temporary functions
+	void Initialize();
+	void RenderFunction();
+	void Cleanup();
+	void CreateShaders();
+	void DestroyShaders();
+	void CreateVBO(void);
+	void DestroyVBO(void);
 };
 

@@ -75,6 +75,7 @@ void App::Run()
 		float currentFrame = glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
+
 		InputManager::Get().Update();
 		//update game logic here
 

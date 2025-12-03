@@ -13,6 +13,15 @@ struct SafeHandle {
     bool IsValid() const { return id != 0; }
 };
 
+namespace std {
+    template<>
+    struct hash<SafeHandle> {
+        std::size_t operator()(const SafeHandle& handle) const noexcept {
+            return std::hash<uint32_t>()(handle.id) ^ (std::hash<uint32_t>()(handle.generation) << 1);
+        }
+    };
+}
+
 class IResource {
     public:
     virtual ~IResource() = default;

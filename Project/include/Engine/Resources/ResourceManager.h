@@ -1,5 +1,6 @@
 #pragma once
-#include "Engine/Resources/ShaderManager.h"
+#include "ShaderManager.h"
+#include "TextureManager.h"
 
 class ResourceManager
 {
@@ -7,6 +8,7 @@ public:
     static ResourceManager& Get();
 
     ShaderManager shaders;
+	TextureManager textures;
 private:
     ResourceManager() = default;
 };

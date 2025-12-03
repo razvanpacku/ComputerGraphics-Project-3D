@@ -11,79 +11,66 @@
 
 #include <iostream>
 
-auto& _rm = ResourceManager::Get();
-
 // temporary functions
 
 GLuint
 VaoId,
-VboId,
-ColorBufferId;
+VboId;
 
 ShaderManager::Handle shaderHandle;
+TextureManager::Handle textureHandle;
 
 float angle = 0.0f;
 
-void CreateVBO(void)
+void Renderer::CreateVBO(void)
 {
 	// vertices 
 	GLfloat Vertices[] = {
-		0.0f,  1.0f, 0.0f, 1.0f,
-		0.866025f, -0.5f, 0.0f, 1.0f,
-		-0.866025f, -0.5f, 0.0f, 1.0f,
+		//Positions								Colors						TextureCoords
+		0.0f,  1.0f, 0.0f, 1.0f,				1.0f, 0.0f, 0.0f, 1.0f,		0.0f, 1.0f,
+		0.866025f, -0.5f, 0.0f, 1.0f,			0.0f, 1.0f, 0.0f, 1.0f,		1.0f, 0.0f,
+		-0.866025f, -0.5f, 0.0f, 1.0f,			0.0f, 0.0f, 1.0f, 1.0f,		0.0f, 0.0f,
 	};
 
-	// colors of the vertices
-	GLfloat Colors[] = {
-	  1.0f, 0.0f, 0.0f, 1.0f,
-	  0.0f, 1.0f, 0.0f, 1.0f,
-	  0.0f, 0.0f, 1.0f, 1.0f,
-	};
+	const GLsizei floatsPerVertex = 10; // 4 position + 4 color + 2 texture coords
+	const GLsizei stride = floatsPerVertex * sizeof(GLfloat);
 
-	// create new buffer id
+	// create VBO and upload interleaved data
 	glGenBuffers(1, &VboId);
-	// set buffer as the current one
 	glBindBuffer(GL_ARRAY_BUFFER, VboId);
-	// the vertices are copied into the buffer
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
 
-	// a VAO is created
+	// create and bind VAO
 	glGenVertexArrays(1, &VaoId);
 	glBindVertexArray(VaoId);
-	// set attribute 0 (position) as current
+	// attribute 0  = position (4 floats)
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, stride, (void*)0);
 
-	// new buffer for colors
-	glGenBuffers(1, &ColorBufferId);
-	glBindBuffer(GL_ARRAY_BUFFER, ColorBufferId);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(Colors), Colors, GL_STATIC_DRAW);
-	// set attribute 1 (color) as current
+	// attribute 1  = color (4 floats)
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, stride, (void*)(4*sizeof(GLfloat)));
+
+	// attribute 2  = texture coords (2 floats)
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void*)(8 * sizeof(GLfloat)));
 }
-void DestroyVBO(void)
+void Renderer::DestroyVBO(void)
 {
+	glDisableVertexAttribArray(2);
 	glDisableVertexAttribArray(1);
 	glDisableVertexAttribArray(0);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glDeleteBuffers(1, &ColorBufferId);
 	glDeleteBuffers(1, &VboId);
 
 	glBindVertexArray(0);
 	glDeleteVertexArrays(1, &VaoId);
 }
 
-void CreateShaders(void)
+void Renderer::CreateShaders(void)
 {
-	//ProgramId = LoadShaders("resources/shaders/example/example.vert", "resources/shaders/example/example.frag");
-	/*
-	shader = _rm.shaders.LoadFromFiles(
-		"resources/shaders/example/example.vert",
-		"resources/shaders/example/example.frag");
-	_rm.shaders.UseShader(shader);
-	*/
+	auto& _rm = ResourceManager::Get();
 	shaderHandle = _rm.shaders.Load(
 		"SimpleShader",
 		ShaderResourceInfo{
@@ -93,18 +80,28 @@ void CreateShaders(void)
 	
 	_rm.shaders.UseShader(shaderHandle);
 }
-void DestroyShaders(void)
+void Renderer::DestroyShaders(void)
 {
+	auto& _rm = ResourceManager::Get();
 	_rm.shaders.Remove(shaderHandle);
 }
 
-void Initialize(void)
+void Renderer::Initialize(void)
 {
+	auto& _rm = ResourceManager::Get();
 	CreateVBO();
 	CreateShaders();
+
+	textureHandle = _rm.textures.Load(
+		"ExampleTexture",
+		TextureResourceInfo{
+			"resources/textures/dev.png",
+			true
+		});
 }
-void RenderFunction(void)
+void Renderer::RenderFunction(void)
 {
+	auto& _rm = ResourceManager::Get();
 	angle += 1.f * App::Get().DeltaTime();
 
 	auto& win = AppAttorney::GetWindow(App::Get());
@@ -125,21 +122,21 @@ void RenderFunction(void)
 
 	auto shader = _rm.shaders.Get(shaderHandle);
 	shader->SetUniform("rotation", mat);
-	
-
+	//Binding texture to uniform
+	BindTextureToUniform("Texture", _rm.textures.GetHandle("ExampleTexture"), shader);
 	//Drawing function
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 
 	glFlush();
 }
 
-void Cleanup(void)
+void Renderer::Cleanup(void)
 {
 	DestroyShaders();
 	DestroyVBO();
 }
 
-Renderer::Renderer(App& app) : app(app)
+Renderer::Renderer(App& app) : app(app), _rm(ResourceManager::Get())
 {
 	glEnable(GL_DEPTH_TEST);
 
@@ -167,4 +164,13 @@ void Renderer::Clear() const
 {
 	glClearColor(DEFAULT_CLEAR_COLOR_R, DEFAULT_CLEAR_COLOR_G, DEFAULT_CLEAR_COLOR_B, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+void Renderer::BindTextureToUniform(const char* uniform, TextureManager::Handle h, Shader* shader)
+{
+	if (!h.IsValid() || shader == nullptr) return;
+
+    _rm.textures.Bind(h);
+    int unit = _rm.textures.GetBoundUnit(h);
+    shader->SetUniform(uniform, unit);
 }
