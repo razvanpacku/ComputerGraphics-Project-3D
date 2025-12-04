@@ -3,8 +3,6 @@
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 
-#include <variant>
-
 #include "ResourceManagerTemplate.h"
 #include "ShaderReflection.h"
 #include "UniformSetter.h"
@@ -15,7 +13,6 @@ class ShaderManager;
 struct Shader : public IResource {
     GLuint program = 0;
 
-    //  ENDTODO
     ShaderReflection reflection;
 
     void Bind() const;
@@ -47,6 +44,8 @@ struct Shader : public IResource {
         UniformSetter<T>::Apply(location, value);
         return true;
     }
+
+    void SetRaw(const std::string& name, GLenum GLtype, const void* data, size_t elementCount);
 
 private:
     // reference to the ShaderManager itself (to get access to the currentProgram)

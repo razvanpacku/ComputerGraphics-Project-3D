@@ -19,6 +19,107 @@ void Shader::Bind() const
         glUseProgram(program);
 	}
 }
+void Shader::SetRaw(const std::string& name, GLenum GLtype, const void* data, size_t elementCount)
+{
+    auto it = reflection.uniforms.find(name);
+    if (it == reflection.uniforms.end()) {
+        return;
+    }
+    const UniformInfo& info = it->second;
+    if (info.location == -1) {
+        // uniform optimized out or part of UBO
+        return;
+    }
+    if(info.type != GLtype) {
+        std::cerr << "Type mismatch in SetRaw for uniform " << name << ": expected "
+                  << GLTypeToString(info.type) << ", got " << GLTypeToString(GLtype) << std::endl;
+        return;
+	}
+
+	auto loc = info.location;
+
+    Bind();
+    // Dispatch based on type
+    switch (GLtype){
+        // floats
+    case GL_FLOAT:
+        glUniform1fv(loc, (GLsizei)elementCount, (const float*)data);
+        break;
+
+    case GL_FLOAT_VEC2:
+        glUniform2fv(loc, (GLsizei)elementCount, (const float*)data);
+        break;
+
+    case GL_FLOAT_VEC3:
+        glUniform3fv(loc, (GLsizei)elementCount, (const float*)data);
+        break;
+
+    case GL_FLOAT_VEC4:
+        glUniform4fv(loc, (GLsizei)elementCount, (const float*)data);
+        break;
+
+        // integers
+    case GL_INT:
+    case GL_BOOL:
+        glUniform1iv(loc, (GLsizei)elementCount, (const int*)data);
+        break;
+
+    case GL_INT_VEC2:
+    case GL_BOOL_VEC2:
+        glUniform2iv(loc, (GLsizei)elementCount, (const int*)data);
+        break;
+
+    case GL_INT_VEC3:
+    case GL_BOOL_VEC3:
+        glUniform3iv(loc, (GLsizei)elementCount, (const int*)data);
+        break;
+
+    case GL_INT_VEC4:
+    case GL_BOOL_VEC4:
+        glUniform4iv(loc, (GLsizei)elementCount, (const int*)data);
+        break;
+
+		// matrices
+    case GL_FLOAT_MAT2:
+        glUniformMatrix2fv(loc, (GLsizei)elementCount, GL_FALSE, (const float*)data);
+        break;
+
+    case GL_FLOAT_MAT3:
+        glUniformMatrix3fv(loc, (GLsizei)elementCount, GL_FALSE, (const float*)data);
+        break;
+
+    case GL_FLOAT_MAT4:
+        glUniformMatrix4fv(loc, (GLsizei)elementCount, GL_FALSE, (const float*)data);
+        break;
+
+    case GL_FLOAT_MAT2x3:
+        glUniformMatrix2x3fv(loc, (GLsizei)elementCount, GL_FALSE, (const float*)data);
+        break;
+
+    case GL_FLOAT_MAT3x2:
+        glUniformMatrix3x2fv(loc, (GLsizei)elementCount, GL_FALSE, (const float*)data);
+        break;
+
+    case GL_FLOAT_MAT2x4:
+        glUniformMatrix2x4fv(loc, (GLsizei)elementCount, GL_FALSE, (const float*)data);
+        break;
+
+    case GL_FLOAT_MAT4x2:
+        glUniformMatrix4x2fv(loc, (GLsizei)elementCount, GL_FALSE, (const float*)data);
+        break;
+
+    case GL_FLOAT_MAT3x4:
+        glUniformMatrix3x4fv(loc, (GLsizei)elementCount, GL_FALSE, (const float*)data);
+        break;
+
+    case GL_FLOAT_MAT4x3:
+        glUniformMatrix4x3fv(loc, (GLsizei)elementCount, GL_FALSE, (const float*)data);
+        break;
+
+    default:
+        break;
+    }
+}
 
 // =========================================================
 // ShaderPolicy

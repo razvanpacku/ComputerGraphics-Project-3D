@@ -46,6 +46,12 @@ void UboPolicy::Destroy(Ubo& res)
 // ==========================================================
 // UboManager
 // ==========================================================
+const std::vector<std::string> UboManager::globalUboNames = {
+	"Matrices",
+	"Lighting",
+	"Time"
+};
+
 UboManager::UboManager()
 {
 	UboPolicy::_um = this;
@@ -69,7 +75,7 @@ UboManager::UboHandle UboManager::CreateOrGet(const UniformBlockInfo& blockInfo)
 	UboManager::UboHandle uboHandle = Load(blockInfo.name, resourceInfo);
 
 	// Create corresponding UboWriter
-	uboWriters.emplace(blockInfo.name, UboWriter(*Get(uboHandle)));
+	uboWriters.emplace(blockInfo.name, UboWriter(Get(uboHandle)));
 
 	return uboHandle;
 }

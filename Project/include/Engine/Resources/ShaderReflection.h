@@ -4,6 +4,7 @@
 #include <unordered_map>
 #define GLFW_INCLUDE_NONE
 #include <glad/glad.h>
+#include <glm/glm.hpp>
 
 
 /*
@@ -59,3 +60,30 @@ public:
 // Util function to get string representation of GL types
 std::string GLTypeToString(GLenum type);
 
+//Util function to get size of GL types
+size_t GLTypeSize(GLenum type);
+
+// UniformValue stores a value of a Uniform through type erasure.
+struct UniformValue {
+	GLenum type;                // GL type of the uniform
+	std::vector<uint8_t> data;  // raw byte data
+	size_t elementCount = 1;    // number of elements (1 for non-array)
+
+    template<typename T>
+    void Set(const T& value, size_t index = 0) {
+        size_t size = GLTypeSize(type);
+
+		index = glm::clamp(index, size_t(0), elementCount - 1);
+
+		data.resize(size);
+		memcpy(data.data() + index * size, &value, size);
+    }
+
+    template<typename T>
+    void SetArray(const T* arr) {
+		size_t size = GLTypeSize(type) * elementCount;
+
+        data.resize(size);
+        memcpy(data.data(), arr, size);
+    }
+};

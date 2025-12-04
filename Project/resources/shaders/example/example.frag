@@ -13,11 +13,15 @@ layout (std140) uniform Test {
 	vec3 testColor[2];
 };
 
+uniform vec4 anotherColors[2];
+
 void main(void){
 	vec4 TexColor = texture(Texture, ex_TexCoord);
 
 	//mix the testColors based on the v texture coordinate
 	vec4 mixColor = vec4(mix(testColor[0], testColor[1], ex_TexCoord.y), 1.0f);
+	vec4 mixColor2 = mix(anotherColors[0], anotherColors[1], ex_TexCoord.x);
+	vec4 mixColor3 = mixColor * mixColor2;
 
-	out_Color = ex_Color * TexColor * mixColor;
+	out_Color = ex_Color * TexColor * mixColor3;
 }

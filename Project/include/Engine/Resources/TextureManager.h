@@ -51,7 +51,7 @@ public:
 
 	void UnbindAll();
 private:
-	int FindFreeUnit() const;
+	int FindFreeUnit();
 	void BindToUnit(Texture* texture, int unit);
 	void UnbindFromUnit(int unit);
 
@@ -64,4 +64,5 @@ private:
 	std::unordered_map<TextureHandle, int> handleToUnit;
 
 	int maxUnits = 0;
+	int nextUnitToBind = 0;
 };

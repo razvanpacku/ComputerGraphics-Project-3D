@@ -106,13 +106,11 @@ TextureManager::~TextureManager()
 }
 
 // --- Utility ---
-int TextureManager::FindFreeUnit() const
+int TextureManager::FindFreeUnit()
 {
-    for (int i = 0; i < maxUnits; i++)
-        if (!unitToHandle[i].has_value())
-            return i;
-
-    return -1; // No free units
+    int freeUnit = nextUnitToBind;
+    nextUnitToBind = (nextUnitToBind + 1) % maxUnits;
+    return freeUnit;
 }
 
 int TextureManager::GetBoundUnit(const TextureHandle& handle) const

@@ -50,3 +50,32 @@ std::string GLTypeToString(GLenum type) {
 		default: return "unknown";
 	}
 }
+
+size_t GLTypeSize(GLenum type) {
+	switch (type) {
+	case GL_FLOAT:			return sizeof(float); break;
+	case GL_FLOAT_VEC2:		return sizeof(float) * 2; break;
+	case GL_FLOAT_VEC3:		return sizeof(float) * 3; break;
+	case GL_FLOAT_VEC4:		return sizeof(float) * 4; break;
+
+	case GL_INT:
+	case GL_BOOL:           return sizeof(int); break;
+	case GL_INT_VEC2:
+	case GL_BOOL_VEC2:		return sizeof(int) * 2; break;
+	case GL_INT_VEC3:
+	case GL_BOOL_VEC3:		return sizeof(int) * 3; break;
+	case GL_INT_VEC4:
+	case GL_BOOL_VEC4:		return sizeof(int) * 4; break;
+
+	case GL_FLOAT_MAT2:		return sizeof(float) * 4; break;
+	case GL_FLOAT_MAT3:		return sizeof(float) * 9; break;
+	case GL_FLOAT_MAT4:		return sizeof(float) * 16; break;
+	case GL_FLOAT_MAT2x3:	return sizeof(float) * 6; break;
+	case GL_FLOAT_MAT2x4:   return sizeof(float) * 8; break;
+	case GL_FLOAT_MAT3x2:   return sizeof(float) * 6; break;
+	case GL_FLOAT_MAT3x4:   return sizeof(float) * 12; break;
+	case GL_FLOAT_MAT4x2:   return sizeof(float) * 8; break;
+	case GL_FLOAT_MAT4x3:   return sizeof(float) * 12; break;
+	default:				return 0; break;
+	}
+}

@@ -20,6 +20,7 @@ VboId;
 
 ShaderManager::Handle shaderHandle;
 TextureManager::Handle textureHandle;
+MaterialManager::Handle materialHandle;
 
 float angle = 0.0f;
 
@@ -93,25 +94,32 @@ void Renderer::Initialize(void)
 	CreateVBO();
 	CreateShaders();
 
-	// test uniform block
-	struct alignas(16) TestBlock
-	{
-		glm::aligned_mat4 first;
-		glm::aligned_vec3 testColor[2];
-	};
-
-	TestBlock testBlockData = { glm::mat4(0.0f), {glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)}};
-
-	auto writer = _rm.ubos.GetUboWriter("Test");
-	writer->SetBlock(testBlockData);
-	writer->Upload();
-
 	textureHandle = _rm.textures.Load(
 		"ExampleTexture",
 		TextureResourceInfo{
 			"resources/textures/dev.png",
 			true
 		});
+
+	materialHandle = _rm.materials.Load(
+		"SimpleMaterial",
+		MaterialResourceInfo{
+			"SimpleShader"
+		});
+
+	auto* material = _rm.materials.Get(materialHandle);
+	material->SetTexture("Texture", textureHandle);
+
+	struct alignas(16) TestBlock
+	{
+		glm::aligned_mat4 first;
+		glm::aligned_vec3 testColor[2];
+	};
+
+	TestBlock testBlockData = { glm::mat4(1.0f), {glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)} };
+	auto writer = material->GetLocalUboWriter("Test");
+	writer->SetBlock(testBlockData);
+	writer->Upload();
 }
 void Renderer::RenderFunction(void)
 {
@@ -134,11 +142,18 @@ void Renderer::RenderFunction(void)
 	glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 0.0f, 1.0f));
 	glm::mat4 mat = view * rotation;
 
-	auto shader = _rm.shaders.Get(shaderHandle);
-	shader->Set("rotation", mat);
 
-	//Binding texture to uniform
-	BindTextureToUniform("Texture", _rm.textures.GetHandle("ExampleTexture"), shader);
+	auto* material = _rm.materials.Get(materialHandle);
+	material->SetUniform("rotation", mat);
+	//material->SetUniformArray("anotherColors", { glm::vec4(0.0f, 1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) });
+	material->SetUniform("anotherColors", glm::vec4(0.0f, 1.0f, 1.0f, 1.0f), 0);
+	material->SetUniform("anotherColors", glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), 1);
+	material->Apply();
+	/*
+	Shader* shader = _rm.shaders.Get(shaderHandle);
+	shader->Set("rotation", mat);
+	*/
+
 	//Drawing function
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 

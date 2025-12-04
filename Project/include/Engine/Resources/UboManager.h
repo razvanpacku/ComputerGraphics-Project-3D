@@ -41,6 +41,10 @@ public:
 	UboWriter* GetUboWriter(const std::string& uboName);
 
 	GLuint GetAndUseNextBindingPoint();
+
+	// names of global UBOs used throughout the engine, used by MaterialPolicy to determine which UBOs *not* to create local writers for
+	// should probably find a better way to do this in the future
+	static const std::vector<std::string> globalUboNames;
 private:
 	GLuint nextBindingPoint = 0;
 
