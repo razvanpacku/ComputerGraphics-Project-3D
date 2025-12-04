@@ -115,7 +115,7 @@ public:
     }
 
     bool Exists(const std::string& name) const {
-        return nameToHandle.count(name) > 0;
+		return nameToHandle.contains(name);
     }
 
     // -----------------------------
@@ -152,7 +152,7 @@ public:
 private:
     struct ResourceSlot {
         ResourceType resource;
-        uint32_t generation;
+        uint32_t generation = 0;
     };
 
     Policy policy;

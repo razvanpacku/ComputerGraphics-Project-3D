@@ -72,7 +72,7 @@ void App::Run()
 {
 	while(!window->ShouldClose())
 	{
-		float currentFrame = glfwGetTime();
+		double currentFrame = glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
 

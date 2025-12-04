@@ -8,6 +8,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/type_aligned.hpp>
 
 #include <iostream>
 
@@ -92,6 +93,19 @@ void Renderer::Initialize(void)
 	CreateVBO();
 	CreateShaders();
 
+	// test uniform block
+	struct alignas(16) TestBlock
+	{
+		glm::aligned_mat4 first;
+		glm::aligned_vec3 testColor[2];
+	};
+
+	TestBlock testBlockData = { glm::mat4(0.0f), {glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)}};
+
+	auto writer = _rm.ubos.GetUboWriter("Test");
+	writer->SetBlock(testBlockData);
+	writer->Upload();
+
 	textureHandle = _rm.textures.Load(
 		"ExampleTexture",
 		TextureResourceInfo{
@@ -121,7 +135,8 @@ void Renderer::RenderFunction(void)
 	glm::mat4 mat = view * rotation;
 
 	auto shader = _rm.shaders.Get(shaderHandle);
-	shader->SetUniform("rotation", mat);
+	shader->Set("rotation", mat);
+
 	//Binding texture to uniform
 	BindTextureToUniform("Texture", _rm.textures.GetHandle("ExampleTexture"), shader);
 	//Drawing function
@@ -172,5 +187,5 @@ void Renderer::BindTextureToUniform(const char* uniform, TextureManager::Handle 
 
     _rm.textures.Bind(h);
     int unit = _rm.textures.GetBoundUnit(h);
-    shader->SetUniform(uniform, unit);
+    shader->Set(uniform, unit);
 }

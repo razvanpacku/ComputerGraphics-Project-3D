@@ -1,6 +1,7 @@
 #pragma once
 #include "ShaderManager.h"
 #include "TextureManager.h"
+#include "UboManager.h"
 
 class ResourceManager
 {
@@ -9,6 +10,7 @@ public:
 
     ShaderManager shaders;
 	TextureManager textures;
+	UboManager ubos;
 private:
     ResourceManager() = default;
 };
