@@ -10,6 +10,8 @@
 
 //forward declaration
 class App;
+class InputManagerAttorney;
+class Window;
 
 class InputManager
 {
@@ -48,6 +50,7 @@ public:
 
 	// ---- Mouse Modes ----
     void SetMouseMode(MouseMode mode);
+	MouseMode GetMouseMode() const;
     void EnableRawMouse(bool enable);
 
     // ---- GLFW Callbacks ----
@@ -80,6 +83,7 @@ private:
     double lastMouseX = 0.0;
     double lastMouseY = 0.0;
     bool hasLastMousePos = false;
+	bool ignoreNextDelta = false;
 
     // Key / mouse states for detecting Pressed/Held/Released
     std::unordered_map<int, bool> keyDown;
@@ -88,7 +92,16 @@ private:
     uint64_t nextID = 1;
 
 	App* app = nullptr;
+
+	friend class InputManagerAttorney;
 };
 
 typedef InputManager::Connection InputConnection;
 
+class InputManagerAttorney {
+private:
+    static void SetIgnoreDelta(InputManager& im, bool ignore = true) {
+        im.ignoreNextDelta = ignore;
+    }
+    friend class Window;
+};

@@ -2,6 +2,7 @@
 
 #include "Engine/App.h"	
 #include "Engine/Renderer.h"
+#include "Engine/InputManager.h"
 
 #include <iostream>
 
@@ -43,6 +44,13 @@ Window::Window(uint16_t width, uint16_t height, const std::string& name, int32_t
 	if (glfwRawMouseMotionSupported())
 		glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
 
+	// Disable V-Sync
+	glfwSwapInterval(0);
+
+	// Set initial mouse mode
+	SetMouseMode(MouseMode::Disabled);
+	InputManagerAttorney::SetIgnoreDelta(InputManager::Get()); // prevent large delta on first frame due to mouse mode
+
 	// Load OpenGL functions with GLAD
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
 		std::cerr << "Failed to initialize GLAD\n";
@@ -75,6 +83,7 @@ bool Window::ShouldClose() const {
 
 void Window::ToggleFullscreen() {
 	isFullscreen = !isFullscreen;
+	InputManagerAttorney::SetIgnoreDelta(InputManager::Get());
 	
 	if (isFullscreen) {
 
@@ -144,5 +153,19 @@ void Window::SetMouseMode(MouseMode mode) {
 	if (mode == MouseMode::Hidden)   glfwMode = GLFW_CURSOR_HIDDEN;
 	if (mode == MouseMode::Disabled) glfwMode = GLFW_CURSOR_DISABLED;
 	glfwSetInputMode(window, GLFW_CURSOR, glfwMode);
+
+	// Apply GLFW cursor mode first (may generate cursor events)
+	glfwSetInputMode(window, GLFW_CURSOR, glfwMode);
+
+	// Center the OS cursor in the framebuffer to avoid a huge first delta
+	int fbW = 0, fbH = 0;
+	glfwGetFramebufferSize(window, &fbW, &fbH);
+	double centerX = (fbW > 0) ? fbW / 2.0 : width / 2.0;
+	double centerY = (fbH > 0) ? fbH / 2.0 : height / 2.0;
+	glfwSetCursorPos(window, centerX, centerY);
+
+	// Ensure the InputManager ignores the next delta produced by this reposition
+	InputManagerAttorney::SetIgnoreDelta(InputManager::Get());
+
 	mouseMode = mode;
 }

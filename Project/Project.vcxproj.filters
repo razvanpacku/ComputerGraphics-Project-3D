@@ -17,6 +17,7 @@
     <ClCompile Include="src\Engine\Resources\UboManager.cpp" />
     <ClCompile Include="src\Engine\Resources\UboWriter.cpp" />
     <ClCompile Include="src\Engine\Resources\MaterialManager.cpp" />
+    <ClCompile Include="src\Engine\Resources\MeshManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\external\assimp\Compiler\poppack1.h" />
@@ -404,6 +405,7 @@
     <ClInclude Include="include\Engine\Resources\UboWriter.h" />
     <ClInclude Include="include\Engine\Resources\Ubo.h" />
     <ClInclude Include="include\Engine\Resources\MaterialManager.h" />
+    <ClInclude Include="include\Engine\Resources\MeshManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="include\external\assimp\color4.inl" />

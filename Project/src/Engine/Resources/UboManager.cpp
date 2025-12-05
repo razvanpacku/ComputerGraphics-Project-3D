@@ -41,6 +41,7 @@ void UboPolicy::Destroy(Ubo& res)
 		glDeleteBuffers(1, &res.bufferID);
 		res.bufferID = 0;
 	}
+	res.alive = false;
 }
 
 // ==========================================================

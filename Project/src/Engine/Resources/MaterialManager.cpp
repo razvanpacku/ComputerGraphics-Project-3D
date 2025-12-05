@@ -122,4 +122,5 @@ Material MaterialPolicy::Create(const std::string& name, const MaterialResourceI
 
 void MaterialPolicy::Destroy(Material& res) {
 	// Nothing special to do, all resources are managed elsewhere, and unordered_maps will clean themselves up
+	res.alive = false;
 }

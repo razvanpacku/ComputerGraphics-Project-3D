@@ -101,13 +101,13 @@ void InputManager::UnbindMouseScroll(uint64_t id) {
 //
 
 void InputManager::SetMouseMode(MouseMode mode) {
-	GLFWwindow* window = AppAttorney::GetWindow(*app).GetNative();  
-    int glfwMode = GLFW_CURSOR_NORMAL;
+    auto& window = AppAttorney::GetWindow(*app);
+	window.SetMouseMode(mode);
+}
 
-    if (mode == MouseMode::Hidden)   glfwMode = GLFW_CURSOR_HIDDEN;
-    if (mode == MouseMode::Disabled) glfwMode = GLFW_CURSOR_DISABLED;
-
-    glfwSetInputMode(window, GLFW_CURSOR, glfwMode);
+MouseMode InputManager::GetMouseMode() const {
+    auto& window = AppAttorney::GetWindow(*app);
+	return window.GetMouseMode();
 }
 
 void InputManager::EnableRawMouse(bool enable) {
@@ -163,18 +163,25 @@ void InputManager::ProcessMouseMove(double x, double y) {
     for (auto& [_, cb] : mouseMoveCallbacks)
         cb(x, y);
 
-    if (hasLastMousePos) {
-        double dx = x - lastMouseX;
-        double dy = y - lastMouseY;
+    if (ignoreNextDelta || !hasLastMousePos) {
+        // Reset last known position, ignore weird delta
+		
+        lastMouseX = x;
+        lastMouseY = y;
+        hasLastMousePos = true;
+        ignoreNextDelta = false;
 
-        // delta movement callbacks
-        for (auto& [_, cb] : mouseDeltaCallbacks)
-            cb(dx, dy);
+        return;
     }
+
+    double dx = x - lastMouseX;
+    double dy = y - lastMouseY;
+
+    for (auto& [_, cb] : mouseDeltaCallbacks)
+        cb(dx, dy);
 
     lastMouseX = x;
     lastMouseY = y;
-    hasLastMousePos = true;
 }
 
 void InputManager::ProcessMouseScroll(double xoffset, double yoffset) {

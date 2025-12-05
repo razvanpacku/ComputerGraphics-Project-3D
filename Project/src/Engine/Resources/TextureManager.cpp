@@ -89,6 +89,7 @@ Texture TexturePolicy::Create(const std::string& name, const TextureResourceInfo
 void TexturePolicy::Destroy(Texture& texture)
 {
     texture.Destroy();
+	texture.alive = false;
 }
 
 // =========================================================

@@ -12,7 +12,7 @@
 
 #include <iostream>
 
-// temporary functions
+// temporary variables, functions and objects for testing
 
 GLuint
 VaoId,
@@ -21,53 +21,168 @@ VboId;
 ShaderManager::Handle shaderHandle;
 TextureManager::Handle textureHandle;
 MaterialManager::Handle materialHandle;
+MeshManager::Handle meshHandle;
+
+struct alignas(16) Matrices {
+	glm::aligned_mat4 model;
+	glm::aligned_mat4 view;
+	glm::aligned_mat4 projection;
+};
+
+//hardcoded camera related variables
+#include "Engine/InputManager.h"
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
+float cameraSpeed = 2.5f;
+float sensitivity = 0.1f;
+float yaw = 90.0f, pitch = 0.0f;
+glm::vec3 front;
+glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
+glm::vec3 right;
+glm::vec3 up;
+
+enum Camera_Movement {
+	FORWARD,
+	BACKWARD,
+	LEFT,
+	RIGHT,
+	UP,
+	DOWN
+};
+
+void ProcessCameraMovement(Camera_Movement dir, float deltaTime) {
+	float velocity = cameraSpeed * deltaTime;
+	glm::vec3 direction(0.0f);
+
+    if (dir == FORWARD)  direction += front;
+    if (dir == BACKWARD) direction -= front;
+    if (dir == LEFT)     direction -= right;
+    if (dir == RIGHT)    direction += right;
+    if (dir == UP)       direction += up;
+    if (dir == DOWN)     direction -= up;
+
+	direction = glm::normalize(direction);
+	cameraPos += direction * velocity;
+}
+
+void UpdateCameraVectors() {
+	glm::vec3 newFront;
+	newFront.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+	newFront.y = sin(glm::radians(pitch));
+	newFront.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+	front = glm::normalize(newFront);
+	right = glm::normalize(glm::cross(front, worldUp));
+	up = glm::normalize(glm::cross(right, front));
+}
+
+glm::mat4 GetViewMatrix() {
+	return glm::lookAt(cameraPos, cameraPos + front, up);
+}
+
+#define REN_DELTA_TIME() ((float)App::Get().DeltaTime())
 
 float angle = 0.0f;
 
 void Renderer::CreateVBO(void)
 {
-	// vertices 
-	GLfloat Vertices[] = {
-		//Positions								Colors						TextureCoords
-		0.0f,  1.0f, 0.0f, 1.0f,				1.0f, 0.0f, 0.0f, 1.0f,		0.0f, 1.0f,
-		0.866025f, -0.5f, 0.0f, 1.0f,			0.0f, 1.0f, 0.0f, 1.0f,		1.0f, 0.0f,
-		-0.866025f, -0.5f, 0.0f, 1.0f,			0.0f, 0.0f, 1.0f, 1.0f,		0.0f, 0.0f,
+
+	struct Vertex {
+		glm::vec4 position;
+		glm::vec2 texCoords;
+		glm::vec3 normal;
 	};
 
-	const GLsizei floatsPerVertex = 10; // 4 position + 4 color + 2 texture coords
-	const GLsizei stride = floatsPerVertex * sizeof(GLfloat);
+	/*
+	std::vector<Vertex> vertices = {
+		{ glm::vec4(0.0f,  1.0f, 0.0f, 1.0f),		glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),	glm::vec2(0.0f, 1.0f) },
+		{ glm::vec4(0.866025f, -0.5f, 0.0f, 1.0f),	glm::vec4(0.0f, 1.0f, 0.0f, 1.0f),	glm::vec2(1.0f, 0.0f) },
+		{ glm::vec4(-0.866025f, -0.5f, 0.0f, 1.0f),	glm::vec4(0.0f, 0.0f, 1.0f, 1.0f),	glm::vec2(0.0f, 0.0f) },
+	};
+	std::vector<GLuint> indices = { 0, 1, 2 };
+	*/
 
-	// create VBO and upload interleaved data
-	glGenBuffers(1, &VboId);
-	glBindBuffer(GL_ARRAY_BUFFER, VboId);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
+	//square
+	/*
+	std::vector<Vertex> vertices = {
+		{ glm::vec4(-0.5f,  0.5f, 0.0f, 1.0f),		glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),	glm::vec2(0.0f, 1.0f) },
+		{ glm::vec4(0.5f,  0.5f, 0.0f, 1.0f),		glm::vec4(0.0f, 1.0f, 0.0f, 1.0f),	glm::vec2(1.0f, 1.0f) },
+		{ glm::vec4(0.5f, -0.5f, 0.0f, 1.0f),		glm::vec4(0.0f, 0.0f, 1.0f, 1.0f),	glm::vec2(1.0f, 0.0f) },
+		{ glm::vec4(-0.5f, -0.5f, 0.0f, 1.0f),	glm::vec4(1.0f, 1.0f, 0.0f, 1.0f),	glm::vec2(0.0f, 0.0f) },
+	};
+	std::vector<uint32_t> indices = {
+		0, 1, 2,
+		2, 3, 0
+	};
+	*/
+	//cube
+	std::vector<Vertex> vertices = {
+		// Front face
+		{ glm::vec4(-0.5f, -0.5f,  0.5f, 1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)},
+		{ glm::vec4( 0.5f, -0.5f,  0.5f, 1.0f), glm::vec2(1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f) },
+		{ glm::vec4( 0.5f,  0.5f,  0.5f, 1.0f), glm::vec2(1.0f, 1.0f), glm::vec3(0.0f, 0.0f, 1.0f) },
+		{ glm::vec4(-0.5f,  0.5f,  0.5f, 1.0f), glm::vec2(0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 1.0f) },
+		// Back face
+		{ glm::vec4(-0.5f, -0.5f, -0.5f, 1.0f), glm::vec2(1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f) },
+		{ glm::vec4( 0.5f, -0.5f, -0.5f, 1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f) },
+		{ glm::vec4( 0.5f,  0.5f, -0.5f, 1.0f), glm::vec2(0.0f, 1.0f), glm::vec3(0.0f, 0.0f, -1.0f) },
+		{ glm::vec4(-0.5f,  0.5f, -0.5f, 1.0f), glm::vec2(1.0f, 1.0f), glm::vec3(0.0f, 0.0f, -1.0f) },
+		// Right face
+		{ glm::vec4(0.5f, -0.5f, -0.5f, 1.0f), glm::vec2(1.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f) },
+		{ glm::vec4(0.5f, -0.5f,  0.5f, 1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f) },
+		{ glm::vec4(0.5f,  0.5f,  0.5f, 1.0f), glm::vec2(0.0f, 1.0f), glm::vec3(1.0f, 0.0f, 0.0f) },
+		{ glm::vec4(0.5f,  0.5f, -0.5f, 1.0f), glm::vec2(1.0f, 1.0f), glm::vec3(1.0f, 0.0f, 0.0f) },
+		// Left face
+		{ glm::vec4(-0.5f, -0.5f, -0.5f, 1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(-1.0f, 0.0f, 0.0f) },
+		{ glm::vec4(-0.5f, -0.5f,  0.5f, 1.0f), glm::vec2(1.0f, 0.0f), glm::vec3(-1.0f, 0.0f, 0.0f) },
+		{ glm::vec4(-0.5f,  0.5f,  0.5f, 1.0f), glm::vec2(1.0f, 1.0f), glm::vec3(-1.0f, 0.0f, 0.0f) },
+		{ glm::vec4(-0.5f,  0.5f, -0.5f, 1.0f), glm::vec2(0.0f, 1.0f), glm::vec3(-1.0f, 0.0f, 0.0f) },
+		// Top face
+		{ glm::vec4(-0.5f,  0.5f,  0.5f, 1.0f), glm::vec2(1.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f) },
+		{ glm::vec4( 0.5f,  0.5f,  0.5f, 1.0f), glm::vec2(0.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f) },
+		{ glm::vec4( 0.5f,  0.5f, -0.5f, 1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f) },
+		{ glm::vec4(-0.5f,  0.5f, -0.5f, 1.0f), glm::vec2(1.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)},
+		// Bottom face
+		{ glm::vec4(-0.5f, -0.5f,  0.5f, 1.0f), glm::vec2(1.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f) },
+		{ glm::vec4( 0.5f, -0.5f,  0.5f, 1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f) },
+		{ glm::vec4( 0.5f, -0.5f, -0.5f, 1.0f), glm::vec2(0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f) },
+		{ glm::vec4(-0.5f, -0.5f, -0.5f, 1.0f), glm::vec2(1.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f) }};
+	std::vector<uint32_t> indices = {
+		// Front face
+		0, 1, 2, 2, 3, 0,
+		// Back face
+		4, 5, 6, 6, 7, 4,
+		// Right face
+		8, 9,10,10,11, 8,
+		// Left face
+	   12,13,14,14,15,12,
+		// Top face
+	   16,17,18,18,19,16,
+		// Bottom face
+	   20,21,22,22,23,20
+	};
 
-	// create and bind VAO
-	glGenVertexArrays(1, &VaoId);
-	glBindVertexArray(VaoId);
-	// attribute 0  = position (4 floats)
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, stride, (void*)0);
+	std::vector<uint8_t> vertexBytes(
+		reinterpret_cast<uint8_t*>(vertices.data()),
+		reinterpret_cast<uint8_t*>(vertices.data()) +
+		vertices.size() * sizeof(Vertex)
+	);
+	std::vector<VertexAttribute> attributes = {
+		{ 0, 4, GL_FLOAT, offsetof(Vertex, position), GL_FALSE },
+		{ 1, 2, GL_FLOAT, offsetof(Vertex, texCoords), GL_FALSE },
+		{ 2, 3, GL_FLOAT, offsetof(Vertex, normal), GL_FALSE },
+	};
 
-	// attribute 1  = color (4 floats)
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, stride, (void*)(4*sizeof(GLfloat)));
-
-	// attribute 2  = texture coords (2 floats)
-	glEnableVertexAttribArray(2);
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void*)(8 * sizeof(GLfloat)));
+	meshHandle = _rm.meshes.Load(
+		"Cube",
+		MeshResoruceInfo{
+			vertexBytes,
+			indices,
+			attributes,
+			sizeof(Vertex)
+		});
 }
 void Renderer::DestroyVBO(void)
 {
-	glDisableVertexAttribArray(2);
-	glDisableVertexAttribArray(1);
-	glDisableVertexAttribArray(0);
-
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glDeleteBuffers(1, &VboId);
-
-	glBindVertexArray(0);
-	glDeleteVertexArrays(1, &VaoId);
+	_rm.meshes.Remove(meshHandle);
 }
 
 void Renderer::CreateShaders(void)
@@ -124,7 +239,7 @@ void Renderer::Initialize(void)
 void Renderer::RenderFunction(void)
 {
 	auto& _rm = ResourceManager::Get();
-	angle += 1.f * App::Get().DeltaTime();
+	angle += 90.f * App::Get().DeltaTime();
 
 	auto& win = AppAttorney::GetWindow(App::Get());
 	double ratio = 1.0;
@@ -136,26 +251,31 @@ void Renderer::RenderFunction(void)
 	{
 		ratio = (double)win.GetWidth() / (double)win.GetHeight();
 	}
+	glm::mat4 projection = glm::infinitePerspective(glm::radians(90.0f), (float)ratio, 0.1f);
+	glm::mat4 view = GetViewMatrix();
+	glm::mat4 model = glm::rotate(
+		glm::mat4(1.0f),
+		glm::radians(angle),
+		glm::vec3(0.0f, 1.0f, 0.0f)
+	);
 
-	glm::mat4 view = glm::ortho(-ratio, ratio, -1., 1.);
-	
-	glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 0.0f, 1.0f));
-	glm::mat4 mat = view * rotation;
+	Matrices matrices = {
+		model,
+		view,
+		projection
+	};
 
-
+	auto* matricesWriter = _rm.ubos.GetUboWriter("Matrices");
+	matricesWriter->SetBlock(matrices);
+	matricesWriter->Upload();
 	auto* material = _rm.materials.Get(materialHandle);
-	material->SetUniform("rotation", mat);
-	//material->SetUniformArray("anotherColors", { glm::vec4(0.0f, 1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) });
-	material->SetUniform("anotherColors", glm::vec4(0.0f, 1.0f, 1.0f, 1.0f), 0);
-	material->SetUniform("anotherColors", glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), 1);
+	material->SetUniform("viewPos", cameraPos);
 	material->Apply();
-	/*
-	Shader* shader = _rm.shaders.Get(shaderHandle);
-	shader->Set("rotation", mat);
-	*/
 
 	//Drawing function
-	glDrawArrays(GL_TRIANGLES, 0, 3);
+	auto* mesh = _rm.meshes.Get(meshHandle);
+	mesh->Bind();
+	glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0);
 
 	glFlush();
 }
@@ -174,6 +294,52 @@ Renderer::Renderer(App& app) : app(app), _rm(ResourceManager::Get())
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
 	glClearColor(DEFAULT_CLEAR_COLOR_R, DEFAULT_CLEAR_COLOR_G, DEFAULT_CLEAR_COLOR_B, 1.0f);
+
+	// temporary hardcoded camera movement
+	UpdateCameraVectors();
+
+	auto& _im = InputManager::Get();
+
+	_im.BindMouseDelta([](double dx, double dy) {
+		auto& window = AppAttorney::GetWindow(App::Get());
+		if( window.GetMouseMode() != MouseMode::Disabled )
+			return;
+
+		if (dx != 0 || dy != 0) {
+			yaw += (float)dx * sensitivity;
+			pitch -= (float)dy * sensitivity;
+			if (pitch > 89.0f)
+				pitch = 89.0f;
+			if (pitch < -89.0f)
+				pitch = -89.0f;
+		}
+		UpdateCameraVectors();
+		});
+
+	_im.BindKey(GLFW_KEY_W, InputEventType::Held, []() {
+		ProcessCameraMovement(FORWARD, REN_DELTA_TIME());
+		});
+
+	_im.BindKey(GLFW_KEY_S, InputEventType::Held, []() {
+		ProcessCameraMovement(BACKWARD, REN_DELTA_TIME());
+		});
+
+	_im.BindKey(GLFW_KEY_A, InputEventType::Held, []() {
+		ProcessCameraMovement(LEFT, REN_DELTA_TIME());
+		});
+
+	_im.BindKey(GLFW_KEY_D, InputEventType::Held, []() {
+		ProcessCameraMovement(RIGHT, REN_DELTA_TIME());
+		});
+
+	_im.BindKey(GLFW_KEY_SPACE, InputEventType::Held, []() {
+		ProcessCameraMovement(UP, REN_DELTA_TIME());
+		});
+
+	_im.BindKey(GLFW_KEY_LEFT_SHIFT, InputEventType::Held, []() {
+		ProcessCameraMovement(DOWN, REN_DELTA_TIME());
+		});
+
 
 	Initialize();
 }
