@@ -15,6 +15,24 @@ const UniformInfo* ShaderReflection::GetUniform(const std::string& name) const {
 	return nullptr;
 }
 
+bool UniformBlockInfo::HasField(const std::string& fieldName) const {
+	for (const auto& field : fields) {
+		if (field.name == fieldName) {
+			return true;
+		}
+	}
+	return false;
+}
+
+const UniformBlockFieldInfo* UniformBlockInfo::GetField(const std::string& name) const {
+	for (const auto& field : fields) {
+		if (field.name == name) {
+			return &field;
+		}
+	}
+	return nullptr;
+}
+
 bool ShaderReflection::HasBlock(const std::string& name) const {
 	return uniformBlocks.contains(name);
 }
@@ -77,5 +95,62 @@ size_t GLTypeSize(GLenum type) {
 	case GL_FLOAT_MAT4x2:   return sizeof(float) * 8; break;
 	case GL_FLOAT_MAT4x3:   return sizeof(float) * 12; break;
 	default:				return 0; break;
+	}
+}
+
+bool IsIntegerType(GLenum type) {
+	switch (type) {
+	case GL_INT:
+	case GL_BOOL:
+		return true;
+	default:
+		return false;
+	}
+}
+
+bool IsFloatType(GLenum type) {
+	switch (type) {
+	case GL_FLOAT:
+		return true;
+	default:
+		return false;
+	}
+}
+
+bool IsArrayType(GLenum type) {
+	switch (type) {
+	case GL_FLOAT_VEC2:
+	case GL_FLOAT_VEC3:
+	case GL_FLOAT_VEC4:
+	case GL_INT_VEC2:
+	case GL_INT_VEC3:
+	case GL_INT_VEC4:
+	case GL_BOOL_VEC2:
+	case GL_BOOL_VEC3:
+	case GL_BOOL_VEC4:
+	case GL_FLOAT_MAT2:
+	case GL_FLOAT_MAT3:
+	case GL_FLOAT_MAT4:
+	case GL_FLOAT_MAT2x3:
+	case GL_FLOAT_MAT2x4:
+	case GL_FLOAT_MAT3x2:
+	case GL_FLOAT_MAT3x4:
+	case GL_FLOAT_MAT4x2:
+	case GL_FLOAT_MAT4x3:
+		return true;
+	default:
+		return false;
+	}
+}
+
+bool IsSamplerType(GLenum type) {
+	switch (type) {
+	case GL_SAMPLER_2D:
+	case GL_SAMPLER_CUBE:
+	case GL_SAMPLER_3D:
+	case GL_SAMPLER_2D_ARRAY:
+		return true;
+	default:
+		return false;
 	}
 }

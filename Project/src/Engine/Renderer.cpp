@@ -10,24 +10,14 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/type_aligned.hpp>
 
+#include "Engine/Resources/UboDefs.h"
+
 #include <iostream>
 
 // temporary variables, functions and objects for testing
 
-GLuint
-VaoId,
-VboId;
-
-ShaderManager::Handle shaderHandle;
 TextureManager::Handle textureHandle;
 MaterialManager::Handle materialHandle;
-MeshManager::Handle meshHandle;
-
-struct alignas(16) Matrices {
-	glm::aligned_mat4 model;
-	glm::aligned_mat4 view;
-	glm::aligned_mat4 projection;
-};
 
 //hardcoded camera related variables
 #include "Engine/InputManager.h"
@@ -82,158 +72,17 @@ glm::mat4 GetViewMatrix() {
 
 float angle = 0.0f;
 
-void Renderer::CreateVBO(void)
-{
-
-	struct Vertex {
-		glm::vec4 position;
-		glm::vec2 texCoords;
-		glm::vec3 normal;
-	};
-
-	/*
-	std::vector<Vertex> vertices = {
-		{ glm::vec4(0.0f,  1.0f, 0.0f, 1.0f),		glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),	glm::vec2(0.0f, 1.0f) },
-		{ glm::vec4(0.866025f, -0.5f, 0.0f, 1.0f),	glm::vec4(0.0f, 1.0f, 0.0f, 1.0f),	glm::vec2(1.0f, 0.0f) },
-		{ glm::vec4(-0.866025f, -0.5f, 0.0f, 1.0f),	glm::vec4(0.0f, 0.0f, 1.0f, 1.0f),	glm::vec2(0.0f, 0.0f) },
-	};
-	std::vector<GLuint> indices = { 0, 1, 2 };
-	*/
-
-	//square
-	/*
-	std::vector<Vertex> vertices = {
-		{ glm::vec4(-0.5f,  0.5f, 0.0f, 1.0f),		glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),	glm::vec2(0.0f, 1.0f) },
-		{ glm::vec4(0.5f,  0.5f, 0.0f, 1.0f),		glm::vec4(0.0f, 1.0f, 0.0f, 1.0f),	glm::vec2(1.0f, 1.0f) },
-		{ glm::vec4(0.5f, -0.5f, 0.0f, 1.0f),		glm::vec4(0.0f, 0.0f, 1.0f, 1.0f),	glm::vec2(1.0f, 0.0f) },
-		{ glm::vec4(-0.5f, -0.5f, 0.0f, 1.0f),	glm::vec4(1.0f, 1.0f, 0.0f, 1.0f),	glm::vec2(0.0f, 0.0f) },
-	};
-	std::vector<uint32_t> indices = {
-		0, 1, 2,
-		2, 3, 0
-	};
-	*/
-	//cube
-	std::vector<Vertex> vertices = {
-		// Front face
-		{ glm::vec4(-0.5f, -0.5f,  0.5f, 1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)},
-		{ glm::vec4( 0.5f, -0.5f,  0.5f, 1.0f), glm::vec2(1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f) },
-		{ glm::vec4( 0.5f,  0.5f,  0.5f, 1.0f), glm::vec2(1.0f, 1.0f), glm::vec3(0.0f, 0.0f, 1.0f) },
-		{ glm::vec4(-0.5f,  0.5f,  0.5f, 1.0f), glm::vec2(0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 1.0f) },
-		// Back face
-		{ glm::vec4(-0.5f, -0.5f, -0.5f, 1.0f), glm::vec2(1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f) },
-		{ glm::vec4( 0.5f, -0.5f, -0.5f, 1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f) },
-		{ glm::vec4( 0.5f,  0.5f, -0.5f, 1.0f), glm::vec2(0.0f, 1.0f), glm::vec3(0.0f, 0.0f, -1.0f) },
-		{ glm::vec4(-0.5f,  0.5f, -0.5f, 1.0f), glm::vec2(1.0f, 1.0f), glm::vec3(0.0f, 0.0f, -1.0f) },
-		// Right face
-		{ glm::vec4(0.5f, -0.5f, -0.5f, 1.0f), glm::vec2(1.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f) },
-		{ glm::vec4(0.5f, -0.5f,  0.5f, 1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f) },
-		{ glm::vec4(0.5f,  0.5f,  0.5f, 1.0f), glm::vec2(0.0f, 1.0f), glm::vec3(1.0f, 0.0f, 0.0f) },
-		{ glm::vec4(0.5f,  0.5f, -0.5f, 1.0f), glm::vec2(1.0f, 1.0f), glm::vec3(1.0f, 0.0f, 0.0f) },
-		// Left face
-		{ glm::vec4(-0.5f, -0.5f, -0.5f, 1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(-1.0f, 0.0f, 0.0f) },
-		{ glm::vec4(-0.5f, -0.5f,  0.5f, 1.0f), glm::vec2(1.0f, 0.0f), glm::vec3(-1.0f, 0.0f, 0.0f) },
-		{ glm::vec4(-0.5f,  0.5f,  0.5f, 1.0f), glm::vec2(1.0f, 1.0f), glm::vec3(-1.0f, 0.0f, 0.0f) },
-		{ glm::vec4(-0.5f,  0.5f, -0.5f, 1.0f), glm::vec2(0.0f, 1.0f), glm::vec3(-1.0f, 0.0f, 0.0f) },
-		// Top face
-		{ glm::vec4(-0.5f,  0.5f,  0.5f, 1.0f), glm::vec2(1.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f) },
-		{ glm::vec4( 0.5f,  0.5f,  0.5f, 1.0f), glm::vec2(0.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f) },
-		{ glm::vec4( 0.5f,  0.5f, -0.5f, 1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f) },
-		{ glm::vec4(-0.5f,  0.5f, -0.5f, 1.0f), glm::vec2(1.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)},
-		// Bottom face
-		{ glm::vec4(-0.5f, -0.5f,  0.5f, 1.0f), glm::vec2(1.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f) },
-		{ glm::vec4( 0.5f, -0.5f,  0.5f, 1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f) },
-		{ glm::vec4( 0.5f, -0.5f, -0.5f, 1.0f), glm::vec2(0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f) },
-		{ glm::vec4(-0.5f, -0.5f, -0.5f, 1.0f), glm::vec2(1.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f) }};
-	std::vector<uint32_t> indices = {
-		// Front face
-		0, 1, 2, 2, 3, 0,
-		// Back face
-		4, 5, 6, 6, 7, 4,
-		// Right face
-		8, 9,10,10,11, 8,
-		// Left face
-	   12,13,14,14,15,12,
-		// Top face
-	   16,17,18,18,19,16,
-		// Bottom face
-	   20,21,22,22,23,20
-	};
-
-	std::vector<uint8_t> vertexBytes(
-		reinterpret_cast<uint8_t*>(vertices.data()),
-		reinterpret_cast<uint8_t*>(vertices.data()) +
-		vertices.size() * sizeof(Vertex)
-	);
-	std::vector<VertexAttribute> attributes = {
-		{ 0, 4, GL_FLOAT, offsetof(Vertex, position), GL_FALSE },
-		{ 1, 2, GL_FLOAT, offsetof(Vertex, texCoords), GL_FALSE },
-		{ 2, 3, GL_FLOAT, offsetof(Vertex, normal), GL_FALSE },
-	};
-
-	meshHandle = _rm.meshes.Load(
-		"Cube",
-		MeshResoruceInfo{
-			vertexBytes,
-			indices,
-			attributes,
-			sizeof(Vertex)
-		});
-}
-void Renderer::DestroyVBO(void)
-{
-	_rm.meshes.Remove(meshHandle);
-}
-
-void Renderer::CreateShaders(void)
-{
-	auto& _rm = ResourceManager::Get();
-	shaderHandle = _rm.shaders.Load(
-		"SimpleShader",
-		ShaderResourceInfo{
-			"resources/shaders/example/example.vert",
-			"resources/shaders/example/example.frag"
-		});
-	
-	_rm.shaders.UseShader(shaderHandle);
-}
-void Renderer::DestroyShaders(void)
-{
-	auto& _rm = ResourceManager::Get();
-	_rm.shaders.Remove(shaderHandle);
-}
-
 void Renderer::Initialize(void)
 {
 	auto& _rm = ResourceManager::Get();
-	CreateVBO();
-	CreateShaders();
 
-	textureHandle = _rm.textures.Load(
-		"ExampleTexture",
-		TextureResourceInfo{
-			"resources/textures/dev.png",
-			true
-		});
-
-	materialHandle = _rm.materials.Load(
-		"SimpleMaterial",
-		MaterialResourceInfo{
-			"SimpleShader"
-		});
-
-	auto* material = _rm.materials.Get(materialHandle);
-	material->SetTexture("Texture", textureHandle);
-
-	struct alignas(16) TestBlock
-	{
-		glm::aligned_mat4 first;
-		glm::aligned_vec3 testColor[2];
-	};
-
-	TestBlock testBlockData = { glm::mat4(1.0f), {glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)} };
-	auto writer = material->GetLocalUboWriter("Test");
-	writer->SetBlock(testBlockData);
+	auto writer = _rm.ubos.GetUboWriter("Lighting");
+	writer->SetBlock((LightingUBO{
+		glm::aligned_vec4(1.0f, 1.0f, 1.0f, 0.0f),
+		glm::fixed_vec3(1.0f, 1.0f, 1.0f),
+		0.25f,
+		glm::fixed_vec3(1.0f, 0.09f, 0.032f)
+		}));
 	writer->Upload();
 }
 void Renderer::RenderFunction(void)
@@ -257,9 +106,12 @@ void Renderer::RenderFunction(void)
 		glm::mat4(1.0f),
 		glm::radians(angle),
 		glm::vec3(0.0f, 1.0f, 0.0f)
+	) * glm::scale(glm::mat4(1.0f),
+		glm::vec3(0.2f)
 	);
 
-	Matrices matrices = {
+
+	MatricesUBO matrices = {
 		model,
 		view,
 		projection
@@ -268,27 +120,36 @@ void Renderer::RenderFunction(void)
 	auto* matricesWriter = _rm.ubos.GetUboWriter("Matrices");
 	matricesWriter->SetBlock(matrices);
 	matricesWriter->Upload();
-	auto* material = _rm.materials.Get(materialHandle);
-	material->SetUniform("viewPos", cameraPos);
-	material->Apply();
+
+	auto* cameraWriter = _rm.ubos.GetUboWriter("Camera");
+	cameraWriter->SetBlock(CameraUBO{
+		cameraPos
+		});
+	cameraWriter->Upload();
 
 	//Drawing function
-	auto* mesh = _rm.meshes.Get(meshHandle);
-	mesh->Bind();
-	glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0);
+	auto* modell = _rm.models.Get("rocket");
+	for(auto& meshEntry : modell->meshEntries)
+	{
+		auto* material = _rm.materials.Get(meshEntry.material);
+		material->Apply();
+
+		auto* mesh = _rm.meshes.Get(meshEntry.mesh);
+		mesh->Bind();
+		glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0);
+	}
 
 	glFlush();
 }
 
 void Renderer::Cleanup(void)
 {
-	DestroyShaders();
-	DestroyVBO();
 }
 
 Renderer::Renderer(App& app) : app(app), _rm(ResourceManager::Get())
 {
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -360,13 +221,4 @@ void Renderer::Clear() const
 {
 	glClearColor(DEFAULT_CLEAR_COLOR_R, DEFAULT_CLEAR_COLOR_G, DEFAULT_CLEAR_COLOR_B, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-}
-
-void Renderer::BindTextureToUniform(const char* uniform, TextureManager::Handle h, Shader* shader)
-{
-	if (!h.IsValid() || shader == nullptr) return;
-
-    _rm.textures.Bind(h);
-    int unit = _rm.textures.GetBoundUnit(h);
-    shader->Set(uniform, unit);
 }

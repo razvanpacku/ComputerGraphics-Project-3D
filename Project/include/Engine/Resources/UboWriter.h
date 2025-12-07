@@ -12,11 +12,6 @@
 #include "ShaderReflection.h"
 #include "Ubo.h"
 
-template<typename T>
-concept GlmType = requires(T v) {
-    glm::value_ptr(v);
-};
-
 // Utility class to write data into UBOs
 class UboWriter
 {
@@ -67,6 +62,11 @@ public:
             memcpy(data.data() + offset, &values[i], sizeof(T));
         }
         return true;
+    }
+
+    template <typename T>
+    bool SetArray(const std::string& memberName, const std::vector<T>& values) {
+        return SetArray(memberName, std::span<const T>(values.begin(), values.size()));
     }
 
     template <typename T>
@@ -121,6 +121,11 @@ public:
         return true;
     }
 
+    template <GlmType T>
+    bool SetArray(const std::string& memberName, const std::vector<T>& values) {
+        return SetArray(memberName, std::span<const T>(values.begin(), values.size()));
+    }
+
     // initializer_list overload
     template <GlmType T>
     bool SetArray(const std::string& memberName, std::initializer_list<T> values)
@@ -159,6 +164,10 @@ public:
         memcpy(data.data(), &block, sizeof(T));
         return true;
 	}
+
+	const UniformBlockInfo* GetUboInfo() const { return ubo; }
+
+	void PrintDebugInfo() const;
 
     void Upload() const;
 private:

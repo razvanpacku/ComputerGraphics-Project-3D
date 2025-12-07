@@ -3,7 +3,6 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
-
 #include "Engine/Resources/ResourceManager.h"
 
 // =========================================================
@@ -125,6 +124,8 @@ void Shader::SetRaw(const std::string& name, GLenum GLtype, const void* data, si
 // ShaderPolicy
 // =========================================================
 
+ShaderManager* ShaderPolicy::_sm = nullptr;
+
 // --- Shader Compilation Helpers ---
 std::string ShaderPolicy::LoadFile(const std::string& path)
 {
@@ -139,7 +140,8 @@ GLuint ShaderPolicy::Compile(GLenum type, const std::string& src)
     GLuint shader = glCreateShader(type);
     const char* csrc = src.c_str();
     glShaderSource(shader, 1, &csrc, nullptr);
-    glCompileShader(shader);
+    //glCompileShader(shader);
+	glCompileShaderIncludeARB(shader, 0, nullptr, nullptr); 
 
     GLint success;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
@@ -183,6 +185,10 @@ void ShaderPolicy::ReflectUniforms(GLuint program, ShaderReflection& out)
 
     char nameBuffer[256];
 
+	GLint textureUnitCounter = 0;
+
+	GLint currentProgram = _sm->currentProgram;
+
     for (GLint i = 0; i < count; ++i) {
         GLsizei length;
         GLint size;     // array size
@@ -206,6 +212,26 @@ void ShaderPolicy::ReflectUniforms(GLuint program, ShaderReflection& out)
         if (location == -1)
             continue; // part of a UBO or optimized out
 
+        if (IsSamplerType(type)) {
+            SamplerInfo samp;
+            samp.name = baseName;
+            samp.type = type;
+            samp.location = location;
+			samp.textureUnit = textureUnitCounter++;
+
+            // set the uniform immediately (so the shader now knows its texture unit)
+
+            if (program != _sm->currentProgram) {
+                _sm->currentProgram = program;
+                glUseProgram(program);
+            }
+
+            glUniform1i(location, samp.textureUnit);
+
+            out.samplers[baseName] = samp;
+            continue;
+        }
+
         UniformInfo info;
         info.name = name;
 		info.baseName = baseName;
@@ -215,6 +241,11 @@ void ShaderPolicy::ReflectUniforms(GLuint program, ShaderReflection& out)
 
         out.uniforms[baseName] = info;
     }
+
+    if(currentProgram != _sm->currentProgram) {
+        _sm->currentProgram = currentProgram;
+        glUseProgram(currentProgram);
+	}
 }
 
 void ShaderPolicy::ReflectUniformBlocks(GLuint program, ShaderReflection& out)
@@ -336,6 +367,7 @@ Shader ShaderPolicy::Create(const std::string& name, const ShaderResourceInfo& s
 	Reflect(program, shader.reflection);
 
     //temp debug print
+    /*
 	std::cout << "Shader Reflection for " << name << ":\n";
     for (auto& [name, info] : shader.reflection.uniforms) {
 		std::cout << "  Uniform: " << name << " type=" << GLTypeToString(info.type)
@@ -351,7 +383,7 @@ Shader ShaderPolicy::Create(const std::string& name, const ShaderResourceInfo& s
                 << " rowMajor=" << field.rowMajor << "\n";
 		}
     }
-
+    */
     return shader;
 }
 
@@ -372,6 +404,7 @@ ShaderManager::ShaderManager()
 {
 	// Give Shader pointer to itself for currentProgram access
 	Shader::_sm = this;
+	ShaderPolicy::_sm = this;
 }
 
 void ShaderManager::UseShader(const ShaderHandle& h)
@@ -397,4 +430,34 @@ void ShaderManager::UseShader(const std::string& name) {
         currentProgram = shader->program;
         glUseProgram(shader->program);
     }
+}
+
+void ShaderManager::PreloadResources(const std::string& resourceDirectory)
+{
+	std::string shaderDir = "shaders/";
+
+	std::filesystem::path fullDir = std::filesystem::path(resourceDirectory) / shaderDir;
+
+	//first find the defs.glsl file for global definitions and include it in the virtual file system
+    std::string defsPath = (fullDir / "defs.glsl").string();
+    std::cout << "Loading global shader definitions from: " << defsPath << "\n";
+	std::string defContent = policy.LoadFile(defsPath);
+	glNamedStringARB(GL_SHADER_INCLUDE_ARB, -1, "/defs.glsl", -1, defContent.c_str());
+
+
+	// shaders are stored as directories which inside have the .vert and .frag files
+	// shader will be named after the directory
+    for (const auto& entry : std::filesystem::directory_iterator(fullDir)) {
+        if (entry.is_directory()) {
+            std::string shaderName = entry.path().filename().string();
+            std::string vertexPath = (entry.path() / (shaderName + ".vert")).string();
+            std::string fragmentPath = (entry.path() / (shaderName + ".frag")).string();
+            std::cout << "Loading shader: " << shaderName << " ("
+				<< vertexPath << ", " << fragmentPath << ")\n";
+            ShaderResourceInfo info;
+            info.vertexPath = vertexPath;
+            info.fragmentPath = fragmentPath;
+            Load(shaderName, info);
+        }
+	}
 }

@@ -1,0 +1,17 @@
+{
+    "name": "metal",
+    "shader": "example",
+    "uniforms": {
+    },
+    "textures": {
+        "albedo": "dev.png"
+    },
+    "ubos": {
+        "Material": {
+            "shininess": 4.0,
+            "specularStrength": 1.0,
+            "metalicity": 1.0,
+            "overrideMetalness": 1
+        }
+    }
+}

@@ -107,13 +107,6 @@ TextureManager::~TextureManager()
 }
 
 // --- Utility ---
-int TextureManager::FindFreeUnit()
-{
-    int freeUnit = nextUnitToBind;
-    nextUnitToBind = (nextUnitToBind + 1) % maxUnits;
-    return freeUnit;
-}
-
 int TextureManager::GetBoundUnit(const TextureHandle& handle) const
 {
     auto it = handleToUnit.find(handle);
@@ -127,25 +120,20 @@ int TextureManager::GetBoundUnit(const std::string& name) const
 }
 
 // --- Binding ---
-bool TextureManager::Bind(const TextureHandle& handle)
+bool TextureManager::Bind(const TextureHandle& handle, GLint unit)
 {
     if (!handle.IsValid())
         return false;
 
-    // If already bound, do nothing
-    int existingUnit = GetBoundUnit(handle);
-    if (existingUnit != -1)
-        return true;
-
-    int unit = FindFreeUnit();
-    if (unit == -1)
-        return false; // No units available
+	//if already bound to that unit, do nothing
+	if (unit == GetBoundUnit(handle))
+		return true;
 
     Texture* tex = Get(handle);
     if (!tex)
         return false;
 
-    BindToUnit(tex, unit);
+	tex->Bind(unit);
 
     unitToHandle[unit] = handle;
     handleToUnit[handle] = unit;
@@ -153,10 +141,10 @@ bool TextureManager::Bind(const TextureHandle& handle)
     return true;
 }
 
-bool TextureManager::Bind(const std::string& name)
+bool TextureManager::Bind(const std::string& name, GLint unit)
 {
     auto handle = GetHandle(name);
-    return Bind(handle);
+    return Bind(handle, unit);
 }
 
 // --- Unbinding ---
@@ -191,13 +179,30 @@ void TextureManager::UnbindAll()
 }
 
 // --- Internal binding helpers ---
-void TextureManager::BindToUnit(Texture* texture, int unit)
-{
-    texture->Bind(unit);
-}
 
 void TextureManager::UnbindFromUnit(int unit)
 {
     glActiveTexture(GL_TEXTURE0 + unit);
     glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+// --- Preloading ---
+void TextureManager::PreloadResources(const std::string& resourceDirectory)
+{
+	std::string texturesDir = "textures/";
+    std::filesystem::path fullDir = std::filesystem::path(resourceDirectory) / texturesDir;
+
+	// Iterate recursively over files in the textures directory
+	// name will be relative path from texturesDir
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(fullDir)) {
+        if (entry.is_regular_file()) {
+            std::string fullPath = entry.path().string();
+            std::string relativePath = std::filesystem::relative(entry.path(), fullDir).string();
+            TextureResourceInfo tri;
+            std::cout << "Loading texture: " << relativePath << "\n";
+            tri.path = fullPath;
+            tri.generateMipmaps = true;
+			Load(relativePath, tri);
+        }
+	}
 }

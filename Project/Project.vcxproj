@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Engine\Resources\ModelManager.cpp" />
     <ClCompile Include="src\Engine\Resources\MeshManager.cpp" />
     <ClCompile Include="src\Engine\Resources\MaterialManager.cpp" />
     <ClCompile Include="src\Engine\Resources\ShaderReflection.cpp" />
@@ -31,7 +32,6 @@
     <ClCompile Include="include\external\glm\detail\glm.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="src\glad.c" />
-    <ClCompile Include="src\Util\loadShaders.cpp" />
     <ClCompile Include="src\Engine\Window.cpp" />
     <ClCompile Include="src\Engine\Resources\TextureManager.cpp" />
     <ClCompile Include="src\Engine\Resources\UboManager.cpp" />
@@ -41,6 +41,7 @@
     <ClInclude Include="include\Engine\App.h" />
     <ClInclude Include="include\Engine\InputEnums.h" />
     <ClInclude Include="include\Engine\Resources\Ubo.h" />
+    <ClInclude Include="include\Engine\Resources\UboDefs.h" />
     <ClInclude Include="include\Engine\Resources\UniformSetter.h" />
     <ClInclude Include="include\external\assimp\aabb.h" />
     <ClInclude Include="include\external\assimp\ai_assert.h" />
@@ -409,9 +410,9 @@
     <ClInclude Include="include\external\glm\vec3.hpp" />
     <ClInclude Include="include\external\glm\vec4.hpp" />
     <ClInclude Include="include\external\glm\vector_relational.hpp" />
+    <ClInclude Include="include\external\json.hpp" />
     <ClInclude Include="include\external\KHR\khrplatform.h" />
     <ClInclude Include="include\external\stb_image.h" />
-    <ClInclude Include="include\Util\loadShaders.h" />
     <ClInclude Include="include\Engine\Window.h" />
     <ClInclude Include="include\Engine\Renderer.h" />
     <ClInclude Include="include\Engine\InputManager.h" />
@@ -424,6 +425,7 @@
     <ClInclude Include="include\Engine\Resources\UboWriter.h" />
     <ClInclude Include="include\Engine\Resources\MaterialManager.h" />
     <ClInclude Include="include\Engine\Resources\MeshManager.h" />
+    <ClInclude Include="include\Engine\Resources\ModelManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="include\external\assimp\color4.inl" />
@@ -570,6 +572,7 @@
     <None Include="include\external\glm\gtx\vector_angle.inl" />
     <None Include="include\external\glm\gtx\vector_query.inl" />
     <None Include="include\external\glm\gtx\wrap.inl" />
+    <None Include="resources\shaders\defs.glsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

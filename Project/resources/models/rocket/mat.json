@@ -1,0 +1,25 @@
+{
+    "materials": [
+        {
+            "name": "rocketMat",
+            "shader": "example",
+            "uniforms": {
+            },
+            "textures": {
+                "albedo": "rocket.png",
+                "metalness": "rocketMetal.png"
+            },
+            "ubos": {
+                "Material": {
+                    "shininess": 4.0,
+                    "specularStrength": 1.0,
+                    "metalicity": 0.0,
+                    "overrideMetalness": 0
+                }
+            }
+        }
+    ],
+    "meshMaterialMap": {
+        "main": "rocketMat"
+    }
+}

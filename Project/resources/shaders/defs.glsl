@@ -1,0 +1,3 @@
+#define FIXED_VEC3 vec4
+
+#define FIXED_VEC3_INIT(VARNAME) vec3 VARNAME = vec3(VARNAME.x, VARNAME.y, VARNAME.z)

@@ -34,6 +34,10 @@ App::App(const std::string& name, uint16_t width, uint16_t height) : name(name)
 	InputManager::setApp(this);
 
 	window = new Window(width, height, name, argc, argv, *this);
+
+	//load resources
+	ResourceManager::Get().PreloadResources("resources/");
+
 	renderer = new Renderer(*this);
 
 	glfwSetKeyCallback(window->GetNative(), KeyCallback);

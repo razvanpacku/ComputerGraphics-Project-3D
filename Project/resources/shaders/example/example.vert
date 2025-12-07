@@ -1,4 +1,6 @@
 #version 460
+#extension GL_ARB_shading_language_include : require
+#include </defs.glsl> //! #include "../defs.glsl"
 
 layout (location = 0) in vec4 in_Position;
 layout (location = 1) in vec2 in_TexCoord;

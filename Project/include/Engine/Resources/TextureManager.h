@@ -40,8 +40,8 @@ public:
 	TextureManager();
 	~TextureManager();
 
-	bool Bind(const TextureHandle& h);
-	bool Bind(const std::string& name);
+	bool Bind(const TextureHandle& h, GLint unit);
+	bool Bind(const std::string& name, GLint unit);
 
 	void Unbind(const TextureHandle& h);
 	void Unbind(const std::string& name);
@@ -49,11 +49,11 @@ public:
 	int GetBoundUnit(const TextureHandle& h) const;
 	int GetBoundUnit(const std::string& name) const;
 
-	void UnbindAll();
-private:
-	int FindFreeUnit();
-	void BindToUnit(Texture* texture, int unit);
 	void UnbindFromUnit(int unit);
+	void UnbindAll();
+
+	virtual void PreloadResources(const std::string& resourceDirectory) override;
+private:
 
 	// OpenGL texture unit tracking:
 	//   index = texture unit
@@ -64,5 +64,4 @@ private:
 	std::unordered_map<TextureHandle, int> handleToUnit;
 
 	int maxUnits = 0;
-	int nextUnitToBind = 0;
 };

@@ -78,6 +78,10 @@ private:
 	static void ReflectUniforms(GLuint program, ShaderReflection& out);
 	static void ReflectUniformBlocks(GLuint program, ShaderReflection& out);
 	static void Reflect(GLuint program, ShaderReflection& out);
+
+    static ShaderManager* _sm;
+
+	friend class ShaderManager;
 };
 
 class ShaderManager : public ResourceManagerTemplate<Shader, ShaderPolicy> {
@@ -90,6 +94,8 @@ public:
     void UseShader(const ShaderHandle& h);
 	void UseShader(const Shader& shader);
 	void UseShader(const std::string& name);
+
+	virtual void PreloadResources(const std::string& resourceDirectory) override;
 
 	GLuint currentProgram = 0;
 };

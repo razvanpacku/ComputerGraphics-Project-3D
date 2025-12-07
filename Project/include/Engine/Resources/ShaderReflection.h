@@ -5,6 +5,10 @@
 #define GLFW_INCLUDE_NONE
 #include <glad/glad.h>
 #include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/type_aligned.hpp>
+
+#include <stdexcept>
 
 
 /*
@@ -42,6 +46,17 @@ struct UniformBlockInfo {
     GLint dataSize;                             // total required size for buffer
 	std::vector<UniformBlockFieldInfo> fields;  // fields within the block
 	int blockSize;                           // size of the block
+
+	bool HasField(const std::string& fieldName) const;
+	const UniformBlockFieldInfo* GetField(const std::string& fieldName) const;
+};
+
+// SamplerInfo holds information about a sampler uniform in a shader program.
+struct SamplerInfo {
+    std::string name;
+    GLenum type;       // GL_SAMPLER_2D, GL_SAMPLER_CUBE, etc.
+    GLint location;    // glGetUniformLocation
+    GLint textureUnit; // assigned texture unit
 };
 
 // ShaderReflection holds all reflection information for a shader program.
@@ -49,6 +64,7 @@ class ShaderReflection {
 public:
     std::unordered_map<std::string, UniformInfo> uniforms;
     std::unordered_map<std::string, UniformBlockInfo> uniformBlocks;
+    std::unordered_map<std::string, SamplerInfo> samplers;
 
     bool HasUniform(const std::string& name) const;
 	const UniformInfo* GetUniform(const std::string& name) const;
@@ -62,6 +78,11 @@ std::string GLTypeToString(GLenum type);
 
 //Util function to get size of GL types
 size_t GLTypeSize(GLenum type);
+
+bool IsIntegerType(GLenum type);
+bool IsFloatType(GLenum type);
+bool IsArrayType(GLenum type);
+bool IsSamplerType(GLenum type);
 
 // UniformValue stores a value of a Uniform through type erasure.
 struct UniformValue {
@@ -87,3 +108,20 @@ struct UniformValue {
         memcpy(data.data(), arr, size);
     }
 };
+
+template<typename T>
+concept GlmType = requires(T v) {
+    glm::value_ptr(v);
+};
+
+// Utility function to convert a span of floats to a glm type G
+template<GlmType G>
+G glm_from_floats(std::vector<float> src) {
+    static_assert(std::is_trivially_copyable_v<G>, "G must be trivially copyable");
+    if (src.size() != sizeof(G) / sizeof(float)) {
+        throw std::runtime_error("glm_from_floats: size mismatch");
+    }
+    G out;
+    std::memcpy(&out, src.data(), sizeof(G));
+    return out;
+}

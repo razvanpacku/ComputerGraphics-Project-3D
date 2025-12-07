@@ -5,11 +5,15 @@
 #include "TextureManager.h"
 #include "UboWriter.h"
 
+#include <json.hpp>
+
 #include <span>
+#include <vector>
 
 //forward declaration
 class MaterialPolicy;
 class MaterialManager;
+class ModelPolicy;
 
 struct Material : public IResource {
 public:
@@ -39,6 +43,11 @@ public:
 		SetUniformArray(name, std::span<const T>(init.begin(), init.size()));
 	}
 
+	template<typename T>
+	void SetUniformArray(const std::string& name, const std::vector<T>& values) {
+		uniforms[name].SetArray(values.data());
+	}
+
 	void SetTexture(const std::string& uniformName, TextureManager::Handle tex);
 	void setTexture(const std::string& uniformName, const std::string& texName);
 	UboWriter* GetLocalUboWriter(const std::string& blockName);
@@ -51,7 +60,7 @@ private:
 
 	std::unordered_map<std::string, UniformValue> uniforms;				// local uniform values for storing non-UBO uniform data local to the material
 	std::unordered_map<std::string, UboWriter> ubos;					// local UBO writers for storing UBO data local to the material
-	std::unordered_map<std::string, TextureManager::Handle> textures;
+	std::unordered_map<std::string, TextureManager::Handle> textures;	// texture samplers
 
 	friend class MaterialPolicy;
 };
@@ -67,9 +76,22 @@ public:
 
 	Material Create(const std::string& name, const MaterialResourceInfo& resourceInfo) override;
 	void Destroy(Material& res) override;
-private:
-	bool IsSamplerType(GLenum t);
+
+	// returns Material, material name and error string (empty if no error)
+	std::tuple<Material, std::string, std::string> CreateFromJSON(const std::string& JSONFilePath);
+
+	std::tuple<Material, std::string, std::string> CreateFromJSONObject(const nlohmann::json& j);
+
+	void ParseJSON(const nlohmann::json& j, Material& mat);
 };
 
-class MaterialManager : public ResourceManagerTemplate<Material, MaterialPolicy> {};
+class MaterialManager : public ResourceManagerTemplate<Material, MaterialPolicy> {
+public:
+	using MaterialHandle = Handle;
+
+	MaterialHandle LoadFromJSON(const std::string& JSONFilePath);
+	virtual void PreloadResources(const std::string& resourceDirectory) override;
+
+	friend class ModelPolicy;
+};
 

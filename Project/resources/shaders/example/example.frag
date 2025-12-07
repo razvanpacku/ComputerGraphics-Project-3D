@@ -1,4 +1,6 @@
 #version 460
+#extension GL_ARB_shading_language_include : require
+#include </defs.glsl> //! #include "../defs.glsl"
 
 in vec2 ex_TexCoord;
 in vec3 ex_Normal;
@@ -6,27 +8,34 @@ in vec3 fragPos;
 
 out vec4 out_Color;
 
-uniform sampler2D Texture;
+uniform sampler2D albedo;
+uniform sampler2D metalness;
 
-layout (std140) uniform Test {
-	mat4 first;
-	vec3 testColor[2];
+layout(std140) uniform Camera {
+	FIXED_VEC3 viewPos;
 };
 
-uniform vec3 viewPos;
+layout(std140) uniform Lighting {
+	vec4 lightPos;
+	FIXED_VEC3 lightColor;
+	float ambientStrength;
+	FIXED_VEC3 attenuationFactor;
+};
 
-vec4 lightPos = vec4(1.0f, 0.0f, 0.0f, 1.0f);
-vec3 lightColor = vec3(1.0, 1.0, 1.0);
-float ambientStrength = 0.25;
-float shininess = 4.0;
-float specularStrength = 1.0f;
-vec3 attenuationFactor = vec3(1.0, 0.09, 0.32);
-
-float metalicity = 0.0f;
+layout(std140) uniform Material {
+	float shininess;
+	float specularStrength;
+	float metalicity;
+	bool overrideMetalness;
+};
 
 void main(void){
-	float tile = 4.0;
-	vec4 TexColor = texture(Texture, ex_TexCoord * tile);
+	FIXED_VEC3_INIT(viewPos);
+	FIXED_VEC3_INIT(lightColor);
+	FIXED_VEC3_INIT(attenuationFactor);
+
+	float tile = 1.0;
+	vec4 TexColor = texture(albedo, ex_TexCoord * tile);
 	vec3 surfaceColor = vec3(TexColor);
 
 	vec3 norm = normalize(ex_Normal);
@@ -53,6 +62,9 @@ void main(void){
     vec3 reflectDir = reflect(-lightDir, norm);
 
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
+	if(diff <= 0.0) {
+		spec = 0;
+	}
     vec3 specular = specularStrength * spec * lightColor;
 
 	// Attenuation component (for point lights)
@@ -62,10 +74,21 @@ void main(void){
 		attenuation = 1.0 / (attenuationFactor.x + attenuationFactor.y * distance + attenuationFactor.z * (distance * distance));
 	}
 
+	//metallness
+	float realMetalicity;
+
+	if(overrideMetalness) {
+		realMetalicity = metalicity;
+	}
+	else{
+		vec4 MetColor = texture(metalness, ex_TexCoord);
+		realMetalicity = (MetColor.r + MetColor.g + MetColor.b) / 3;
+	}
+
 	// Combine all components
 
-	vec3 diffuseComponent = diffuse * surfaceColor * (1.0 - metalicity);
-	vec3 specularComponent = specular * mix(vec3(1.0f), surfaceColor, metalicity);
+	vec3 diffuseComponent = diffuse * surfaceColor * (1.0 - realMetalicity);
+	vec3 specularComponent = specular * mix(vec3(1.0f), surfaceColor, realMetalicity);
 	vec4 result = vec4(ambient, 1.0f) * TexColor + vec4(attenuation * (diffuseComponent + specularComponent), 1.0f);
 
 	out_Color = result;

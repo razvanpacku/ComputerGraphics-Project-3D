@@ -3,6 +3,7 @@
 #include <string>
 #include <cstdint>
 #include <iostream>
+#include <filesystem>
 
 struct SafeHandle {
     uint32_t id = 0;
@@ -84,6 +85,20 @@ public:
         return Handle{ id, gen };
     }
 
+    Handle Register(const std::string& name, ResourceType& resource) {
+        // Already loaded? Return existing handle
+        if (nameToHandle.count(name))
+            return nameToHandle[name];
+        uint32_t id = nextID++;
+        uint32_t gen = 1;
+
+        resource.alive = true;
+        resources[id] = { resource, gen };
+        nameToHandle[name] = Handle{ id, gen };
+        handleToName[id] = name;
+        return Handle{ id, gen };
+	}
+
     // -----------------------------
     // Direct handle-based access
     // -----------------------------
@@ -149,7 +164,13 @@ public:
             it->second.resource.alive;
     }
 
-private:
+	// -----------------------------
+    // Preload resources
+	// -----------------------------
+    virtual void PreloadResources(const std::string& resourceDirectory) {
+	}
+
+protected:
     struct ResourceSlot {
         ResourceType resource;
         uint32_t generation = 0;
