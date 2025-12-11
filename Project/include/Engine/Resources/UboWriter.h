@@ -36,6 +36,7 @@ public:
 		size_t offset = m.offset + arrayIndex * m.arrayStride;
 
         memcpy(data.data() + offset, &value, sizeof(T));
+		dirty = true;
         return true;
     }
 
@@ -61,6 +62,7 @@ public:
             size_t offset = m.offset + i * m.arrayStride;
             memcpy(data.data() + offset, &values[i], sizeof(T));
         }
+        dirty = true;
         return true;
     }
 
@@ -94,6 +96,7 @@ public:
         size_t offset = m.offset + arrayIndex * m.arrayStride;
 
         memcpy(data.data() + offset, glm::value_ptr(value), sizeof(T));
+        dirty = true;
         return true;
     }
 
@@ -118,6 +121,7 @@ public:
             size_t offset = m.offset + i * m.arrayStride;
             memcpy(data.data() + offset, glm::value_ptr(values[i]), elementSize);
         }
+        dirty = true;
         return true;
     }
 
@@ -150,6 +154,7 @@ public:
         if (size > static_cast<size_t>(m.arrayStride))
             return false; // value too large for the member
         memcpy(data.data() + offset, valuePtr, size);
+        dirty = true;
         return true;
 	}
 
@@ -162,6 +167,7 @@ public:
             return false;
         }
         memcpy(data.data(), &block, sizeof(T));
+        dirty = true;
         return true;
 	}
 
@@ -169,9 +175,11 @@ public:
 
 	void PrintDebugInfo() const;
 
-    void Upload() const;
+    void Upload();
+	void MakeDirty() { dirty = true; }
 private:
 	const UniformBlockInfo* ubo;
 	std::vector<uint8_t> data;
+    bool dirty = false;
 };
 

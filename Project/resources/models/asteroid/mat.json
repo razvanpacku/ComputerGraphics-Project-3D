@@ -1,0 +1,24 @@
+{
+    "materials": [
+        {
+            "name": "asteroidMat",
+            "shader": "example",
+            "uniforms": {
+            },
+            "textures": {
+                "albedo": "asteroid.png"
+            },
+            "ubos": {
+                "Material": {
+                    "shininess": 1.0,
+                    "specularStrength": 0.0,
+                    "metalicity": 0.2,
+                    "overrideMetalness": 1
+                }
+            }
+        }
+    ],
+    "meshMaterialMap": {
+        "main": "asteroidMat"
+    }
+}

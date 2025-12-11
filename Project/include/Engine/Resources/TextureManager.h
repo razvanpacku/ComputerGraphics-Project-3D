@@ -11,7 +11,7 @@ struct Texture : public IResource {
 	bool LoadFromFile(const std::string& path, bool generateMipmaps = true);
 	void Destroy();
 
-	void Bind(GLuint unit = 0) const;
+	void Bind(GLuint unit = 0, bool bindToUnit = true) const;
 
 	GLuint id = 0;
 	uint16_t width = 0;
@@ -40,16 +40,16 @@ public:
 	TextureManager();
 	~TextureManager();
 
-	bool Bind(const TextureHandle& h, GLint unit);
-	bool Bind(const std::string& name, GLint unit);
+	bool Bind(const TextureHandle& h, GLint unit, bool bindToUnit = true);
+	bool Bind(const std::string& name, GLint unit, bool bindToUnit = true);
 
-	void Unbind(const TextureHandle& h);
-	void Unbind(const std::string& name);
+	void Unbind(const TextureHandle& h, bool bindToUnit = true);
+	void Unbind(const std::string& name, bool bindToUnit = true);
 
 	int GetBoundUnit(const TextureHandle& h) const;
 	int GetBoundUnit(const std::string& name) const;
 
-	void UnbindFromUnit(int unit);
+	void UnbindFromUnit(int unit, bool bindToUnit = true);
 	void UnbindAll();
 
 	virtual void PreloadResources(const std::string& resourceDirectory) override;

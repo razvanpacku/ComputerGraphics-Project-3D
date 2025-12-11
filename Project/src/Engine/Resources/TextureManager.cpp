@@ -63,9 +63,9 @@ void Texture::Destroy()
     }
 }
 
-void Texture::Bind(GLuint unit) const
+void Texture::Bind(GLuint unit, bool bindToUnit) const
 {
-    glActiveTexture(GL_TEXTURE0 + unit);
+    if(bindToUnit) glActiveTexture(GL_TEXTURE0 + unit);
     glBindTexture(GL_TEXTURE_2D, id);
 }
 
@@ -120,7 +120,7 @@ int TextureManager::GetBoundUnit(const std::string& name) const
 }
 
 // --- Binding ---
-bool TextureManager::Bind(const TextureHandle& handle, GLint unit)
+bool TextureManager::Bind(const TextureHandle& handle, GLint unit, bool bindToUnit)
 {
     if (!handle.IsValid())
         return false;
@@ -133,7 +133,14 @@ bool TextureManager::Bind(const TextureHandle& handle, GLint unit)
     if (!tex)
         return false;
 
-	tex->Bind(unit);
+	// If the unit is already occupied, unbind the existing texture
+    if (unitToHandle[unit].has_value())
+    {
+        TextureHandle existingHandle = unitToHandle[unit].value();
+        handleToUnit.erase(existingHandle);
+	}
+
+	tex->Bind(unit, bindToUnit);
 
     unitToHandle[unit] = handle;
     handleToUnit[handle] = unit;
@@ -141,30 +148,30 @@ bool TextureManager::Bind(const TextureHandle& handle, GLint unit)
     return true;
 }
 
-bool TextureManager::Bind(const std::string& name, GLint unit)
+bool TextureManager::Bind(const std::string& name, GLint unit, bool bindToUnit)
 {
     auto handle = GetHandle(name);
-    return Bind(handle, unit);
+    return Bind(handle, unit, bindToUnit);
 }
 
 // --- Unbinding ---
-void TextureManager::Unbind(const TextureHandle& handle)
+void TextureManager::Unbind(const TextureHandle& handle, bool bindToUnit)
 {
     int unit = GetBoundUnit(handle);
     if (unit == -1)
         return;
 
-    UnbindFromUnit(unit);
+    UnbindFromUnit(unit, bindToUnit);
 
     unitToHandle[unit].reset();
     handleToUnit.erase(handle);
 }
 
-void TextureManager::Unbind(const std::string& name)
+void TextureManager::Unbind(const std::string& name, bool bindToUnit)
 {
     auto h = GetHandle(name);
     if (h.IsValid())
-        Unbind(h);
+        Unbind(h, bindToUnit);
 }
 
 void TextureManager::UnbindAll()
@@ -180,10 +187,17 @@ void TextureManager::UnbindAll()
 
 // --- Internal binding helpers ---
 
-void TextureManager::UnbindFromUnit(int unit)
+void TextureManager::UnbindFromUnit(int unit, bool bindToUnit)
 {
-    glActiveTexture(GL_TEXTURE0 + unit);
+    if(bindToUnit) glActiveTexture(GL_TEXTURE0 + unit);
     glBindTexture(GL_TEXTURE_2D, 0);
+
+    if (unitToHandle[unit].has_value())
+    {
+        TextureHandle handle = unitToHandle[unit].value();
+        handleToUnit.erase(handle);
+        unitToHandle[unit].reset();
+	}
 }
 
 // --- Preloading ---

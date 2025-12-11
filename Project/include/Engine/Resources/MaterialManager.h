@@ -14,6 +14,7 @@
 class MaterialPolicy;
 class MaterialManager;
 class ModelPolicy;
+struct GLStateCache;
 
 struct Material : public IResource {
 public:
@@ -52,7 +53,7 @@ public:
 	void setTexture(const std::string& uniformName, const std::string& texName);
 	UboWriter* GetLocalUboWriter(const std::string& blockName);
 
-	void Apply();
+	void Apply(GLStateCache* glState = nullptr);
 
 
 private:
@@ -61,6 +62,8 @@ private:
 	std::unordered_map<std::string, UniformValue> uniforms;				// local uniform values for storing non-UBO uniform data local to the material
 	std::unordered_map<std::string, UboWriter> ubos;					// local UBO writers for storing UBO data local to the material
 	std::unordered_map<std::string, TextureManager::Handle> textures;	// texture samplers
+
+	std::unordered_map<std::string, bool> dirtyTextures;				// track which textures have been modified
 
 	friend class MaterialPolicy;
 };

@@ -19,6 +19,8 @@ struct Mesh : IResource {
 	GLuint vbo;				
 	GLuint ebo;
 
+	GLuint instanceVBO = 0; // optional instance VBO for instanced rendering
+
 	std::vector<uint8_t> vertexData;
 	std::vector<uint32_t> indices;
 
@@ -31,6 +33,10 @@ struct Mesh : IResource {
 	uint32_t indexCount = 0;
 
 	void Bind() const;
+
+	void EnableInstancing(bool vaoAlreadyBound);
+	void UploadInstancedData(const void* data, size_t count);
+	bool isInstancingEnabled() const { return instanceVBO != 0; }
 
 private:
 	static MeshManager* _mm;

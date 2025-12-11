@@ -11,8 +11,10 @@ out vec4 out_Color;
 uniform sampler2D albedo;
 uniform sampler2D metalness;
 
-layout(std140) uniform Camera {
+layout (std140) uniform Camera {
 	FIXED_VEC3 viewPos;
+	mat4 view;
+	mat4 projection;
 };
 
 layout(std140) uniform Lighting {

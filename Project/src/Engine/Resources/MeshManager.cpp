@@ -1,5 +1,7 @@
 #include "Engine/Resources/MeshManager.h"
 
+#include <glm/glm.hpp>
+
 // ==========================================
 // Mesh
 // ==========================================
@@ -11,6 +13,40 @@ void Mesh::Bind() const
         Mesh::_mm->currentVAO = vao;
         glBindVertexArray(vao);
 	}
+}
+
+void Mesh::EnableInstancing(bool vaoAlreadyBound)
+{
+    if (instanceVBO != 0) return; // already enabled
+    if(!vaoAlreadyBound) glBindVertexArray(vao);
+
+    glGenBuffers(1, &instanceVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+    // Allocate buffer
+    glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW);
+    // Set attribute pointers for matrix (4 vec4)
+
+	GLuint attributeIndexStart = attributes.size();
+    for (GLuint i = 0; i < 4; i++) {
+        GLuint attribIndex = attributeIndexStart + i;
+
+        glEnableVertexAttribArray(attribIndex);
+        glVertexAttribPointer(attribIndex, 4, GL_FLOAT, GL_FALSE,
+            sizeof(glm::mat4),
+            reinterpret_cast<const void*>(sizeof(glm::vec4) * i));
+        glVertexAttribDivisor(attribIndex, 1); // advance per instance
+    }
+    if (!vaoAlreadyBound) glBindVertexArray(0);
+}
+
+void Mesh::UploadInstancedData(const void* data, size_t count)
+{
+    if (instanceVBO == 0) return; // instancing not enabled
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+    glBufferData(GL_ARRAY_BUFFER,
+        sizeof(glm::mat4) * count,
+        data,
+        GL_DYNAMIC_DRAW);
 }
 
 // ==========================================
@@ -39,6 +75,10 @@ void MeshPolicy::Destroy(Mesh& res)
 	glDeleteBuffers(1, &res.vbo);
 	glDeleteBuffers(1, &res.ebo);
 	glDeleteVertexArrays(1, &res.vao);
+    if (res.instanceVBO != 0) {
+        glDeleteBuffers(1, &res.instanceVBO);
+        res.instanceVBO = 0;
+	}
 	res.alive = false;
 }
 

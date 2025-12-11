@@ -90,6 +90,8 @@ struct UniformValue {
 	std::vector<uint8_t> data;  // raw byte data
 	size_t elementCount = 1;    // number of elements (1 for non-array)
 
+	bool dirty = false;
+
     template<typename T>
     void Set(const T& value, size_t index = 0) {
         size_t size = GLTypeSize(type);
@@ -98,6 +100,7 @@ struct UniformValue {
 
 		data.resize(size);
 		memcpy(data.data() + index * size, &value, size);
+        dirty = true;
     }
 
     template<typename T>
@@ -106,6 +109,7 @@ struct UniformValue {
 
         data.resize(size);
         memcpy(data.data(), arr, size);
+		dirty = true;
     }
 };
 

@@ -22,14 +22,6 @@ inline glm::fixed_vec3 fixedVec3(const glm::vec3& v) {
 	return glm::fixed_vec3(v);
 }
 
-// UBO struct definitions
-
-struct STD140 MatricesUBO {
-	glm::aligned_mat4 model;
-	glm::aligned_mat4 view;
-	glm::aligned_mat4 projection;
-};
-
 struct STD140 LightingUBO
 {
 	glm::aligned_vec4 lightPos;
@@ -47,4 +39,6 @@ struct STD140 MaterialUBO {
 struct STD140 CameraUBO
 {
 	glm::fixed_vec3 viewPos;
+	glm::aligned_mat4 view;
+	glm::aligned_mat4 projection;
 };

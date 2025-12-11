@@ -6,11 +6,13 @@ UboWriter::UboWriter(const UniformBlockInfo* uboInfo)
 	data.assign(ubo->dataSize, 0);
 }
 
-void UboWriter::Upload() const
+void UboWriter::Upload()
 {
+	if (!dirty) return;
 	glBindBuffer(GL_UNIFORM_BUFFER, ubo->bufferID);
 	glBufferSubData(GL_UNIFORM_BUFFER, 0, data.size(), data.data());
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
+	dirty = false;
 }
 
 void UboWriter::PrintDebugInfo() const

@@ -1,6 +1,7 @@
 #include "Engine/Resources/MaterialManager.h"
 
 #include "Engine/Resources/ResourceManager.h"
+#include "Engine/Renderer/GLStateCache.h"
 
 #include <filesystem>
 #include <fstream>
@@ -68,7 +69,12 @@ void Material::SetTexture(const std::string& uniformName, TextureManager::Handle
 void Material::setTexture(const std::string& uniformName, const std::string& texName) {
 	TextureManager& tm = ResourceManager::Get().textures;
 	TextureManager::Handle texHandle = tm.GetHandle(texName);
+	if(texHandle == textures[uniformName]) {
+		//same texture, do nothing
+		return;
+	}
 	textures[uniformName] = texHandle;
+	dirtyTextures[uniformName] = true;
 }
 
 UboWriter* Material::GetLocalUboWriter(const std::string& blockName) {
@@ -80,25 +86,35 @@ UboWriter* Material::GetLocalUboWriter(const std::string& blockName) {
 	return nullptr;
 }
 
-void Material::Apply() {
+void Material::Apply(GLStateCache* glState) {
 	ShaderManager& sm = ResourceManager::Get().shaders;
 	TextureManager& tm = ResourceManager::Get().textures;
+	MaterialManager& mm = ResourceManager::Get().materials;
 
-	Shader* shaderPtr = sm.Get(shader);
+	Shader* shaderPtr = nullptr;
+	shaderPtr = sm.Get(shader);
 	if (!shaderPtr) return;
-	sm.UseShader(*shaderPtr);
+	if (!glState || glState->currentShader != shader) {
+		sm.UseShader(*shaderPtr);
+		glState->currentShader = shader;
+	}
 
 	// Apply uniforms
 	for (const auto& [name, uniformValue] : uniforms) {
 		//uniform name is guaranteed to exist in the shader from ManagerPolicy, so no check needed
+		if (!uniformValue.dirty && (!glState || glState->currentMaterial == this)) continue; //skip non-dirty uniforms
 		shaderPtr->SetRaw(name, uniformValue.type, uniformValue.data.data(), uniformValue.elementCount);
+		uniforms[name].dirty = false;
 	}
 	// Apply UBOs
 	for (auto& [blockName, uboWriter] : ubos) {
+		if (!glState || glState->currentMaterial != this) uboWriter.MakeDirty();
 		uboWriter.Upload();
 	}
 	// Bind textures
 	for (const auto& [uniformName, texHandle] : textures) {
+		//only bind if dirty
+		if (!dirtyTextures[uniformName] && glState->currentMaterial == this) continue;
 
 		//we can just bind all the textures, if the material has more textures than there are units, that's currently a limitation of the engine
 		//tm.Bind(texHandle);
@@ -108,15 +124,32 @@ void Material::Apply() {
 
 		int unit = it->second.textureUnit;
 
-		//if texture handle is invalid, unbind the texture at the unit
-		if (!texHandle.IsValid()) {
-			tm.UnbindFromUnit(unit);
+		bool bindUnit = (!glState) || (glState->activeTextureUnit != unit);
+
+		if(glState && glState->boundTextures[unit] == texHandle) {
+			//texture already bound at this unit, skip
+			dirtyTextures[uniformName] = false;
 			continue;
 		}
 
-		tm.Bind(texHandle, unit);
+		//if texture handle is invalid, unbind the texture at the unit
+		if (!texHandle.IsValid()) {
+			tm.UnbindFromUnit(unit, bindUnit);
+			if(glState) glState->boundTextures[unit] = TextureManager::Handle{};
+			dirtyTextures[uniformName] = false;
+			continue;
+		}
+
+		tm.Bind(texHandle, unit, bindUnit);
+		//debug check what texture is bound at this unit
+		if (glState) {
+			glState->boundTextures[unit] = texHandle;
+		}
+		dirtyTextures[uniformName] = false;
 
 	}
+
+	if (glState) glState->currentMaterial = this;
 }
 
 // =========================================================
@@ -169,6 +202,7 @@ Material MaterialPolicy::Create(const std::string& name, const MaterialResourceI
 	for (const auto& [samplerName, samplerInfo] : reflection.samplers) {
 		// Just set to invalid handle for now, user can set later
 		mat.textures[samplerName] = TextureManager::Handle{};
+		mat.dirtyTextures[samplerName] = false;
 	}
 	return mat;
 }
