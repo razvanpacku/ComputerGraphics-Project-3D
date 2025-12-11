@@ -6,6 +6,7 @@
 
 #include "Engine/Resources/ResourceManager.h"
 #include "Engine/Components/Transform.h"
+#include "Engine/Renderer//Culling/BoundingBox.h"
 
 // ===================================================
 // RenderLayer
@@ -52,9 +53,10 @@ struct Renderable
 	GLenum primitive = 0; // if 0, use mesh primitive
 
 	// optional bounding box for culling
-	glm::vec3 aabbMin = glm::vec3(0.0f);
-	glm::vec3 aabbMax = glm::vec3(0.0f);
+	BoundingBox aabb;
 	bool hasBounds = false;
+
+	bool cullBackfaces = true;
 
 	InstanceData* instanceData = nullptr; // optional instance data for instanced rendering
 

@@ -2,6 +2,7 @@
 #include <glad/glad.h>
 
 #include "ResourceManagerTemplate.h"
+#include "Engine/Renderer/Culling/BoundingBox.h"
 
 //forward declaration
 class MeshManager;
@@ -32,6 +33,9 @@ struct Mesh : IResource {
 	uint32_t vertexCount = 0;
 	uint32_t indexCount = 0;
 
+	BoundingBox boundingBox;
+	bool cullBackfaces = true;
+
 	void Bind() const;
 
 	void EnableInstancing(bool vaoAlreadyBound);
@@ -49,6 +53,9 @@ struct MeshResoruceInfo {
 	std::vector<uint32_t> indices;
 	std::vector<VertexAttribute> attributes;
 	uint32_t stride;
+
+	BoundingBox boundingBox;
+	bool cullBackfaces = true;
 };
 
 class MeshPolicy : public IResourcePolicy<Mesh, MeshResoruceInfo> {

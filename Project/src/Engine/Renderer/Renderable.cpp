@@ -19,30 +19,30 @@ Renderable::~Renderable()
 	}
 }
 
-Renderable::Renderable(const Renderable& other) noexcept
-	: meshHandle(other.meshHandle),
-	  materialHandle(other.materialHandle),
-	  mesh(other.mesh),
-	  transform(other.transform),
-	  primitive(other.primitive),
-	  aabbMin(other.aabbMin),
-	  aabbMax(other.aabbMax),
-	  hasBounds(other.hasBounds),
-	  instanceData(other.instanceData)
+Renderable::Renderable(const Renderable& other) noexcept :
+	meshHandle(other.meshHandle),
+	materialHandle(other.materialHandle),
+	mesh(other.mesh),
+	transform(other.transform),
+	primitive(other.primitive),
+	aabb(other.aabb),
+	hasBounds(other.hasBounds),
+	cullBackfaces(other.cullBackfaces),
+	instanceData(other.instanceData)
 {
 	// Note: shallow copy of mesh and instanceData pointers
 }
 
-Renderable::Renderable(Renderable&& other) noexcept
-	: meshHandle(other.meshHandle),
-	  materialHandle(other.materialHandle),
-	  mesh(other.mesh),
-	  transform(std::move(other.transform)),
-	  primitive(other.primitive),
-	  aabbMin(other.aabbMin),
-	  aabbMax(other.aabbMax),
-	  hasBounds(other.hasBounds),
-	  instanceData(other.instanceData)
+Renderable::Renderable(Renderable&& other) noexcept :
+	meshHandle(other.meshHandle),
+	materialHandle(other.materialHandle),
+	mesh(other.mesh),
+	transform(std::move(other.transform)),
+	primitive(other.primitive),
+	aabb(other.aabb),
+	hasBounds(other.hasBounds),
+	cullBackfaces(other.cullBackfaces),
+	instanceData(other.instanceData)
 {
 	other.mesh = nullptr;
 	other.instanceData = nullptr;
@@ -63,8 +63,8 @@ uint64_t Renderable::GetSortKey() const
 		meshId = meshHandle.id & 0xFFFFFF;
 	}
 
-	// reserved for future use
 	uint32_t flags = 0;
+	flags |= cullBackfaces;
 
 	uint64_t key = 0;
 	key |= (uint64_t(shaderId) << 48);

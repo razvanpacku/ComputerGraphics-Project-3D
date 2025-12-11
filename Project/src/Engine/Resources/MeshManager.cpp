@@ -62,6 +62,8 @@ Mesh MeshPolicy::Create(const std::string& name, const MeshResoruceInfo& resourc
 	mesh.vertexStride = resourceInfo.stride;
 	mesh.vertexCount = resourceInfo.vertexData.size() / resourceInfo.stride;
 	mesh.indexCount = resourceInfo.indices.size();
+	mesh.boundingBox = resourceInfo.boundingBox;
+	mesh.cullBackfaces = resourceInfo.cullBackfaces;
 
 
 	Upload(&mesh);

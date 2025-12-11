@@ -15,6 +15,8 @@ struct GLStateCache {
 	Mesh* currentDynamicMesh = nullptr;
 	std::vector<TextureManager::Handle> boundTextures;
 
+	bool cullBackfaces = true;
+
 	GLint activeTextureUnit = -1;
 
 	// In practice, there should be only one instance of this class owned by the Renderer, so one extra opengl call during its construction is acceptable.

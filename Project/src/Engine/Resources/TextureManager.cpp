@@ -213,7 +213,7 @@ void TextureManager::PreloadResources(const std::string& resourceDirectory)
             std::string fullPath = entry.path().string();
             std::string relativePath = std::filesystem::relative(entry.path(), fullDir).string();
             TextureResourceInfo tri;
-            std::cout << "Loading texture: " << relativePath << "\n";
+            std::cout << "  Loading texture: " << relativePath << "\n";
             tri.path = fullPath;
             tri.generateMipmaps = true;
 			Load(relativePath, tri);

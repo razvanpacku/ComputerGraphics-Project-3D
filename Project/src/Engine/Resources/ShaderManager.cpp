@@ -440,7 +440,7 @@ void ShaderManager::PreloadResources(const std::string& resourceDirectory)
 
 	//first find the defs.glsl file for global definitions and include it in the virtual file system
     std::string defsPath = (fullDir / "defs.glsl").string();
-    std::cout << "Loading global shader definitions from: " << defsPath << "\n";
+    std::cout << "  Loading global shader definitions from: " << defsPath << "\n";
 	std::string defContent = policy.LoadFile(defsPath);
 	glNamedStringARB(GL_SHADER_INCLUDE_ARB, -1, "/defs.glsl", -1, defContent.c_str());
 
@@ -452,7 +452,7 @@ void ShaderManager::PreloadResources(const std::string& resourceDirectory)
             std::string shaderName = entry.path().filename().string();
             std::string vertexPath = (entry.path() / (shaderName + ".vert")).string();
             std::string fragmentPath = (entry.path() / (shaderName + ".frag")).string();
-            std::cout << "Loading shader: " << shaderName << " ("
+            std::cout << "  Loading shader: " << shaderName << " ("
 				<< vertexPath << ", " << fragmentPath << ")\n";
             ShaderResourceInfo info;
             info.vertexPath = vertexPath;

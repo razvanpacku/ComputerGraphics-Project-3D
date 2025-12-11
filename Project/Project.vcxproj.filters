@@ -22,6 +22,9 @@
     <ClCompile Include="src\Engine\Renderer\RenderQueue.cpp" />
     <ClCompile Include="src\Engine\Components\Transform.cpp" />
     <ClCompile Include="src\Engine\Renderer\BatchBuilder.cpp" />
+    <ClCompile Include="src\Engine\Renderer\Culling\BoundingBox.cpp" />
+    <ClCompile Include="src\Engine\Renderer\Culling\Frustum.cpp" />
+    <ClCompile Include="src\Engine\Resources\MeshFactory.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\external\assimp\Compiler\poppack1.h" />
@@ -419,6 +422,10 @@
     <ClInclude Include="include\Engine\Components\Transform.h" />
     <ClInclude Include="include\Engine\Renderer\GLStateCache.h" />
     <ClInclude Include="include\Engine\Renderer\BatchBuilder.h" />
+    <ClInclude Include="include\Engine\Renderer\Culling\BoundingBox.h" />
+    <ClInclude Include="include\Engine\Renderer\Culling\Frustum.h" />
+    <ClInclude Include="include\Engine\Resources\MeshFactory.h" />
+    <ClInclude Include="include\Engine\Renderer\RenderableProvider\MeshRenderableProvider.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="include\external\assimp\color4.inl" />

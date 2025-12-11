@@ -1,0 +1,11 @@
+{
+    "name": "flat",
+    "shader": "flat",
+    "uniforms": {
+    },
+    "textures": {
+        "tex": "dev.png"
+    },
+    "ubos": {
+    }
+}

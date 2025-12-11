@@ -26,6 +26,7 @@ public:
 	uint16_t GetHeight() const { return height; }
 	uint16_t GetMonitorWidth() const { return videoMode->width; }
 	uint16_t GetMonitorHeight() const { return videoMode->height; }
+	float GetAspectRatio() const { return ratio; }
 	bool IsFullscreen() const { return isFullscreen; }
 	void SetMouseMode(MouseMode mode);
 
@@ -41,6 +42,9 @@ private:
 
 	uint16_t width, height;
 	uint16_t windowPosX, windowPosY;
+
+	float ratio = 1.0f;
+
 	GLFWwindow* window;
 	GLFWmonitor* monitor;
 	const GLFWvidmode* videoMode;

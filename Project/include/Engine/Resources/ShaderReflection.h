@@ -122,10 +122,10 @@ concept GlmType = requires(T v) {
 template<GlmType G>
 G glm_from_floats(std::vector<float> src) {
     static_assert(std::is_trivially_copyable_v<G>, "G must be trivially copyable");
-    if (src.size() != sizeof(G) / sizeof(float)) {
-        throw std::runtime_error("glm_from_floats: size mismatch");
-    }
-    G out;
-    std::memcpy(&out, src.data(), sizeof(G));
+    G out{}; // zero-initialize including padding
+    // copy up to src.size() floats into the component storage
+    size_t bytesToCopy = src.size() * sizeof(float);
+    // value_ptr(out) points to the contiguous component floats (no padding)
+    std::memcpy(glm::value_ptr(out), src.data(), bytesToCopy);
     return out;
 }

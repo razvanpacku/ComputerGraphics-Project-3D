@@ -14,6 +14,18 @@ void RenderQueue::Clear()
 
 void RenderQueue::Push(const Renderable& renderable)
 {
+	// Check if renderable is within the view frustum if it has bounds
+	if (renderable.hasBounds) {
+		//get transformed AABB
+		glm::mat4 modelMatrix = renderable.transform.GetModelMatrix();
+		BoundingBox transformedAABB = TransformAABB(renderable.aabb, modelMatrix);
+
+		if (!AABBInFrustum(viewFrustum, transformedAABB)) {
+			// Cull the renderable
+			return;
+		}
+	}
+
 	RenderSubmission submission;
 	submission.item = renderable;
 	submission.sortKey = renderable.GetSortKey();

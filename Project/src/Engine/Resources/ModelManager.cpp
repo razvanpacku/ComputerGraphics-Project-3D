@@ -18,7 +18,8 @@ Model ModelPolicy::Create(const std::string& name, const ModelResourceInfo& reso
 	const aiScene* scene = importer.ReadFile(resourceInfo.modelFilePath,
 		aiProcess_Triangulate |
 		aiProcess_GenSmoothNormals |
-		aiProcess_JoinIdenticalVertices);
+		aiProcess_JoinIdenticalVertices |
+		aiProcess_GenBoundingBoxes);
 
 	bool flipYandZ = false;
 
@@ -80,6 +81,20 @@ Model ModelPolicy::Create(const std::string& name, const ModelResourceInfo& reso
 		std::vector<uint8_t> vertexData(vertices.size() * sizeof(Vertex));
 		memcpy(vertexData.data(), vertices.data(), vertexData.size());
 
+		// Get bounding box
+		BoundingBox bbox;
+		aiVector3D min = ai_mesh->mAABB.mMin;
+		aiVector3D max = ai_mesh->mAABB.mMax;
+
+		if (flipYandZ) {
+			bbox.min = glm::vec3(min.x, -max.z, min.y);
+			bbox.max = glm::vec3(max.x, -min.z, max.y);
+		}
+		else {
+			bbox.min = glm::vec3(min.x, min.y, min.z);
+			bbox.max = glm::vec3(max.x, max.y, max.z);
+		}
+
 		std::string meshName;
 		if (ai_mesh->mName.length > 0) {
 			meshName = ai_mesh->mName.C_Str();
@@ -94,7 +109,9 @@ Model ModelPolicy::Create(const std::string& name, const ModelResourceInfo& reso
 				vertexData,
 				indices,
 				attributes,
-				sizeof(Vertex)
+				sizeof(Vertex),
+				bbox,
+				true
 			});
 
 		Model::MeshEntry meshEntry;
@@ -196,7 +213,7 @@ void ModelManager::PreloadResources(const std::string& resourceDirectory)
 		if (entry.is_directory()) {
 			std::string modelName = entry.path().filename().string();
 			std::string modelPath = (entry.path() / (modelName + ".glb")).string();
-			std::cout << "Loading model: " << modelName << " ("
+			std::cout << "  Loading model: " << modelName << " ("
 				<< modelPath << ")\n";
 			ModelResourceInfo modelInfo;
 			modelInfo.modelFilePath = modelPath;

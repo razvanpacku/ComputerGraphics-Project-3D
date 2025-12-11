@@ -1,5 +1,6 @@
 #pragma once
 #include "Renderable.h"
+#include "Culling/Frustum.h"
 
 #include <vector>
 #include <queue>
@@ -22,12 +23,16 @@ public:
 	std::vector<RenderSubmission>& GetSortedLayer(RenderLayer layer) const;
 
 	size_t TotalSize() const;
+
+	void SetViewFrustum(const Frustum& frustum) { viewFrustum = frustum; }
 private:
 	std::priority_queue<RenderSubmission> opaque;
 	std::priority_queue<RenderSubmission> transparent;
 	std::priority_queue<RenderSubmission> gui;
 
 	uint64_t nextSubmitIndex = 1;
+
+	Frustum viewFrustum;
 
 };
 

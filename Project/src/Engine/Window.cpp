@@ -35,6 +35,8 @@ Window::Window(uint16_t width, uint16_t height, const std::string& name, int32_t
 	windowPosX = static_cast<uint16_t>((screenW - width) / 2);
 	windowPosY = static_cast<uint16_t>((screenH - height) / 2);
 
+	ratio = static_cast<float>(width) / static_cast<float>(height);
+
 	glfwMakeContextCurrent(window);
 
 	glfwSetWindowUserPointer(window, &app);
@@ -96,6 +98,8 @@ void Window::ToggleFullscreen() {
 		width = static_cast<uint16_t>(_width);
 		height = static_cast<uint16_t>(_height);
 
+		ratio = static_cast<float>(videoMode->width) / static_cast<float>(videoMode->height);
+
 		// Go fullscreen on primary monitor
 		glfwSetWindowMonitor(window, monitor, 0, 0,
 			videoMode->width, videoMode->height, videoMode->refreshRate);
@@ -106,6 +110,8 @@ void Window::ToggleFullscreen() {
 		glfwSetWindowMonitor(window, nullptr,
 			windowPosX, windowPosY, width, height, 0);
 		SetMouseMode(mouseMode);
+
+		ratio = static_cast<float>(width) / static_cast<float>(height);
 	}
 
 	// Update viewport and internal size
@@ -133,6 +139,7 @@ void Window::FramebufferSizeCallback(GLFWwindow* window, int width, int height)
 	if (!win.isFullscreen) {
 		win.height = static_cast<uint16_t>(height);
 		win.width = static_cast<uint16_t>(width);
+		win.ratio = static_cast<float>(width) / static_cast<float>(height);
 	}
 
 	AppAttorney::GetRenderer(app).Render();

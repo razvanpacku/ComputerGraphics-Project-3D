@@ -813,7 +813,7 @@ void MaterialManager::PreloadResources(const std::string& resourceDirectory) {
 		if (entry.is_regular_file() && entry.path().extension() == ".json") {
 			std::string fullPath = entry.path().string();
 			std::string relativePath = std::filesystem::relative(entry.path(), fullDir).string();
-			std::cout << "Loading material: " << relativePath << "\n";
+			std::cout << "  Loading material: " << relativePath << "\n";
 			LoadFromJSON(fullPath);
 		}
 	}

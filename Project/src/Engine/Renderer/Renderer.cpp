@@ -13,13 +13,18 @@
 #include "Engine/Resources/UboDefs.h"
 
 #include "Engine/Renderer/RenderableProvider//ModelRenderableProvider.h"
+#include "Engine/Renderer/RenderableProvider//MeshRenderableProvider.h"
 #include "Engine/Renderer/BatchBuilder.h"
+#include "Engine/Renderer/Culling/Frustum.h"
 
 #include <iostream>
 #include <algorithm>
 
 // temporary variables, functions and objects for testing
 std::vector<Renderable> tempRenderables;
+std::vector<Renderable> boundingBoxes;
+bool showBoundingBoxes = false;
+#define ASTEROID_COUNT 1000
 
 //hardcoded camera related variables
 #include "Engine/InputManager.h"
@@ -66,6 +71,11 @@ void UpdateCameraVectors() {
 	up = glm::normalize(glm::cross(right, front));
 }
 
+glm::mat4 GetPerspectiveMatrix() {
+	auto& win = AppAttorney::GetWindow(App::Get());
+	return glm::infinitePerspective(glm::radians(90.0f), win.GetAspectRatio(), 0.1f);
+}
+
 glm::mat4 GetViewMatrix() {
 	return glm::lookAt(cameraPos, cameraPos + front, up);
 }
@@ -100,7 +110,7 @@ void Renderer::Initialize(void)
 
 	// this model will generate only one renderable
 	// fill tempRenderables with copies of it for testing, with different positions
-	for (int i = 0; i < 1000; i++) {
+	for (int i = 0; i < ASTEROID_COUNT; i++) {
 		Renderable r = tempRenderables[0];
 		//r.transform.position = glm::vec3((i % 10) * 2 - 9.0f, -1.0f, (i / 10) * 2 - 9.0f);
 
@@ -137,59 +147,10 @@ void Renderer::Initialize(void)
 }
 void Renderer::RenderFunction(void)
 {
-	auto& _rm = ResourceManager::Get();
-	angle += 90.f * App::Get().DeltaTime();
-
 	auto& win = AppAttorney::GetWindow(App::Get());
-	double ratio = 1.0;
-	if(win.IsFullscreen())
-	{
-		ratio = (double)win.GetMonitorWidth() / (double)win.GetMonitorHeight();
-	}
-	else
-	{
-		ratio = (double)win.GetWidth() / (double)win.GetHeight();
-	}
-	glm::mat4 projection = glm::infinitePerspective(glm::radians(90.0f), (float)ratio, 0.1f);
+	// update Camera ubo
+	glm::mat4 projection = GetPerspectiveMatrix();
 	glm::mat4 view = GetViewMatrix();
-	/*
-	glm::mat4 model = glm::rotate(
-		glm::mat4(1.0f),
-		glm::radians(angle),
-		glm::vec3(0.0f, 1.0f, 0.0f)
-	) * glm::scale(glm::mat4(1.0f),
-		glm::vec3(0.2f)
-	);
-
-	MatricesUBO matrices = {
-		model,
-		view,
-		projection
-	};
-
-	auto* matricesWriter = _rm.ubos.GetUboWriter("Matrices");
-	matricesWriter->SetBlock(matrices);
-	matricesWriter->Upload();
-
-	auto* cameraWriter = _rm.ubos.GetUboWriter("Camera");
-	cameraWriter->SetBlock(CameraUBO{
-		cameraPos
-		});
-	cameraWriter->Upload();
-
-	//Drawing function
-	auto* modell = _rm.models.Get("rocket");
-	for(auto& meshEntry : modell->meshEntries)
-	{
-		auto* material = _rm.materials.Get(meshEntry.material);
-		material->Apply();
-
-		auto* mesh = _rm.meshes.Get(meshEntry.mesh);
-		mesh->Bind();
-		glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0);
-	}
-	*/
-
 	auto* cameraWriter = _rm.ubos.GetUboWriter("Camera");
 	cameraWriter->SetBlock(CameraUBO{
 		cameraPos,
@@ -198,22 +159,13 @@ void Renderer::RenderFunction(void)
 		});
 	cameraWriter->Upload();
 
-	/*
-	auto* modell = _rm.models.Get("rocket");
-	Transform t = {
-		glm::vec3(0.0f, -1.0f, 0.0f),
-		glm::quat(glm::vec3(0.0f, glm::radians(angle), 0.0f)),
-		glm::vec3(0.2f)
-	};
-	ModelRenderableProvider modelProvider;
-	modelProvider.model = modell;
-	modelProvider.transform = t;
-	std::vector<Renderable> renderables;
-	modelProvider.GenerateRenderables(renderables);
+	Frustum frustrum(projection * view);
+	renderQueue.SetViewFrustum(frustrum);
 
-	renderQueue.Push(renderables);
-	*/
-	for(size_t i = 0; i < tempRenderables.size()-1; i++)
+	auto& _rm = ResourceManager::Get();
+	angle += 90.f * App::Get().DeltaTime();
+
+	for(size_t i = 0; i < ASTEROID_COUNT; i++)
 	{
 		auto& r = tempRenderables[i];
 		// make the ring of asteroids slowly rotate, based on their distance from center
@@ -221,10 +173,37 @@ void Renderer::RenderFunction(void)
 		float rotationSpeed = 100.0f / distance; // closer asteroids rotate faster
 		// update position based on rotation around Y axis
 		float currentAngle = glm::degrees(atan2(r.transform.position.z, r.transform.position.x));
-		currentAngle += rotationSpeed * App::Get().DeltaTime();
+		float deltaAngle = rotationSpeed * App::Get().DeltaTime();
+		currentAngle += deltaAngle;
 		r.transform.position.x = cos(glm::radians(currentAngle)) * distance;
 		r.transform.position.z = sin(glm::radians(currentAngle)) * distance;
+
+		// rotate each asteroid on y axis, matching ring rotation speed
+		glm::quat deltaQuat = glm::quat(glm::vec3(0.0f, glm::radians(-deltaAngle), 0.0f));
+		r.transform.rotation = deltaQuat * r.transform.rotation;
 		
+	}
+
+	// in boundingBoxes generate bounding boxes using the bounding_box mesh for each renderable
+	if(showBoundingBoxes){
+		boundingBoxes.clear();
+		MeshRenderableProvider meshProvider;
+		meshProvider.meshHandle = _rm.meshes.GetHandle("primitive/bounding_box");
+		meshProvider.materialHandle = _rm.materials.GetHandle("boundingBox");
+		for (size_t i = 0; i < tempRenderables.size(); i++) {
+			auto& r = tempRenderables[i];
+			if (!r.hasBounds) continue;
+
+			glm::mat4 modelMatrix = r.transform.GetModelMatrix();
+			BoundingBox transformedAABB = TransformAABB(r.aabb, modelMatrix);
+
+			meshProvider.transform.position = (transformedAABB.min + transformedAABB.max) * 0.5f;
+
+			meshProvider.transform.scale = transformedAABB.max - transformedAABB.min;
+
+			meshProvider.GenerateRenderables(boundingBoxes);
+		}
+		renderQueue.Push(boundingBoxes);
 	}
 
 	renderQueue.Push(tempRenderables);
@@ -270,6 +249,11 @@ Renderer::Renderer(App& app) : app(app), _rm(ResourceManager::Get())
 		UpdateCameraVectors();
 		});
 
+	_im.BindMouseScroll([](double xoffset, double yoffset) {
+		double scale = glm::pow(1.1, yoffset);
+		cameraSpeed *= (float)scale;
+		});
+
 	_im.BindKey(GLFW_KEY_W, InputEventType::Held, []() {
 		ProcessCameraMovement(FORWARD, REN_DELTA_TIME());
 		});
@@ -292,6 +276,11 @@ Renderer::Renderer(App& app) : app(app), _rm(ResourceManager::Get())
 
 	_im.BindKey(GLFW_KEY_LEFT_SHIFT, InputEventType::Held, []() {
 		ProcessCameraMovement(DOWN, REN_DELTA_TIME());
+		});
+
+	// --------------------------------
+	_im.BindKey(GLFW_KEY_B, InputEventType::Pressed, []() {
+		showBoundingBoxes = !showBoundingBoxes;
 		});
 
 
@@ -321,8 +310,6 @@ void Renderer::Clear() const
 // =================================================
 
 void Renderer::RenderFrame() {
-	//TODO: Frustum culling
-
 	auto transparentList = renderQueue.GetSortedLayer(RenderLayer::Transparent);
 	//sort back to front using renderable::sortDistance
 	std::stable_sort(transparentList.begin(), transparentList.end(),
@@ -362,6 +349,16 @@ void Renderer::DrawSubmission(const RenderSubmission& submission)
 	if (!mesh) return;
 	auto* material = _rm.materials.Get(submission.item.materialHandle);
 	if (!material) return;
+
+	//check and set face culling
+	if(glState.cullBackfaces != submission.item.cullBackfaces)
+	{
+		glState.cullBackfaces = submission.item.cullBackfaces;
+		if(glState.cullBackfaces)
+			glEnable(GL_CULL_FACE);
+		else
+			glDisable(GL_CULL_FACE);
+	}
 
 	material->Apply(&glState);
 
