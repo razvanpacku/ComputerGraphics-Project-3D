@@ -11,7 +11,7 @@ out vec4 out_Color;
 uniform sampler2D albedo;
 uniform sampler2D metalness;
 
-uniform sampler2DShadow directionalShadow;
+uniform sampler2DArrayShadow dirShadow;
 uniform samplerCubeShadow pointShadow;
 
 uniform bool receiveShadows;
@@ -32,7 +32,7 @@ layout(std140) uniform Lighting {
 layout (std140) uniform Shadow {
 	mat4 LightSpace[6];
     vec4 LightPos;
-    float FarPlane;
+    float CascadedSplits[6];
 };
 
 layout(std140) uniform Material {
@@ -42,35 +42,108 @@ layout(std140) uniform Material {
 	bool overrideMetalness;
 };
 
-float ShadowCalculation(vec4 fragPosLightSpace)
-{
-    // Perform perspective divide
-    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-    // Transform from [-1,1] to [0,1] for texture coordinates
-    projCoords = projCoords * 0.5 + 0.5;
-    
-    // Check if fragment is outside shadow map
-    if(projCoords.z > 1.0) return 0.0;
+struct CascadeInfo {
+    int index;
+    int nextIndex;
+    float blend;
+};
 
-	// ---- planar bias ----
+const float CASCADE_BLEND_RANGE = 0.05;
+
+CascadeInfo SelectCascadeBlended(vec3 fragPosWorld)
+{
+    float viewDepth = - (view * vec4(fragPosWorld, 1.0)).z;
+
+    CascadeInfo info;
+    info.index = 0;
+    info.nextIndex = 0;
+    info.blend = 0.0;
+
+    for (int i = 0; i < 6; i++)
+    {
+        float splitStart = (i == 0) ? 0.1f : CascadedSplits[i - 1];
+        float splitEnd   = CascadedSplits[i];
+        float splitSize  = splitEnd - splitStart;
+
+        if (viewDepth < splitEnd)
+        {
+            info.index = i;
+
+            float blendStart = splitEnd - splitSize * CASCADE_BLEND_RANGE;
+
+            if (viewDepth > blendStart && i < 3)
+            {
+                info.nextIndex = i + 1;
+                info.blend = smoothstep(
+                    blendStart,
+                    splitEnd,
+                    viewDepth
+                );
+            }
+            else
+            {
+                info.nextIndex = i;
+                info.blend = 0.0;
+            }
+
+            return info;
+        }
+    }
+
+    info.index = 3;
+    info.nextIndex = 3;
+    info.blend = 0.0;
+    return info; 
+}
+
+float SampleCascadeShadow(
+    int cascade,
+    vec3 fragPosWorld,
+    vec3 normal
+)
+{
+    vec4 fragPosLightSpace = LightSpace[cascade] * vec4(fragPosWorld, 1.0);
+
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5;
+
+    if (projCoords.z > 1.0)
+        return 0.0;
+
     float depth = projCoords.z;
 
     float dzdx = dFdx(depth);
     float dzdy = dFdy(depth);
 
-    // Size of one texel in shadow map
-    vec2 texelSize = 1.0 / textureSize(directionalShadow, 0);
+    vec2 texelSize = 1.0 / vec2(textureSize(dirShadow, 0));
 
-    float bias = abs(dzdx) * texelSize.x +
-                 abs(dzdy) * texelSize.y;
+    float planarBias = abs(dzdx) * texelSize.x +
+                       abs(dzdy) * texelSize.y;
 
-    // Small constant bias for numerical stability
-    bias += 0.0005;
+    vec3 lightDir = normalize(lightPos.xyz);
+    float slopeBias = max(0.002 * (1.0 - dot(normal, lightDir)), 0.0005);
 
-    // Hardware PCF does comparison internally
-    float shadow = 1.0 - texture(directionalShadow,
-                                 vec3(projCoords.xy, depth - bias));
-    return shadow;
+    float cascadeScale = CascadedSplits[cascade] / CascadedSplits[5];
+    float bias = (planarBias + slopeBias) * cascadeScale;
+
+    return 1.0 - texture(
+        dirShadow,
+        vec4(projCoords.xy, cascade, depth - bias)
+    );
+}
+
+float ShadowCalculationBlended(vec3 fragPosWorld, vec3 normal)
+{
+    CascadeInfo info = SelectCascadeBlended(fragPosWorld);
+
+    float shadow0 = SampleCascadeShadow(info.index, fragPosWorld, normal);
+
+    if (info.index == info.nextIndex)
+        return shadow0;
+
+    float shadow1 = SampleCascadeShadow(info.nextIndex, fragPosWorld, normal);
+
+    return mix(shadow0, shadow1, info.blend);
 }
 
 float ShadowCalculationPointLight(vec3 fragPos)
@@ -89,7 +162,7 @@ float ShadowCalculationPointLight(vec3 fragPos)
         minBias
     );
 
-	float depth = currentDepth / FarPlane;
+	float depth = currentDepth / CascadedSplits[0];
 
 	bias *= depth;
 
@@ -158,7 +231,7 @@ void main(void){
 	float shadow = 0.0;
 	if(receiveShadows){
 		if (lightPos.w == 0.0) {
-			shadow = ShadowCalculation(LightSpace[0] * vec4(fragPos, 1.0));
+			shadow = ShadowCalculationBlended(fragPos, norm);
 		}
 		else{
 			shadow = ShadowCalculationPointLight(fragPos);

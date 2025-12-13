@@ -576,5 +576,6 @@
     <None Include="include\external\glm\gtx\wrap.inl" />
     <None Include="resources\shaders\defs.glsl" />
     <None Include="resources\shaders\pointShadow\pointShadow.geom" />
+    <None Include="resources\shaders\dirShadow\dirShadow.geom" />
   </ItemGroup>
 </Project>

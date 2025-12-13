@@ -14,19 +14,14 @@ ShadowFramebuffer::ShadowFramebuffer(ShadowMapType type)
 		_tm.GetHandle("shadow/dir");
 
 	auto* tex = _tm.Get(texHandle);
-	size = tex->GetHeight(); // assuming square textures
+	size = tex->GetHeight(); // assuming square textures all of the same size
 
 	// create fbo
 	glGenFramebuffers(1, &fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
 	// attach depth texture
-	if (isCube) {
-		glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, tex->id, 0);
-	}
-	else {
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tex->id, 0);
-	}
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, tex->id, 0);
 
 	// no color output
 	glDrawBuffer(GL_NONE);
@@ -54,15 +49,15 @@ ShadowFramebuffer::~ShadowFramebuffer()
 void ShadowFramebuffer::BindForWriting(int faceIndex) const
 {
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-	Clear();
 	glEnable(GL_CULL_FACE);
-	if( !isCube) glCullFace(GL_FRONT);
+	if (!isCube) glCullFace(GL_FRONT);
 
 	if (isCube && faceIndex >= 0 && faceIndex < 6) {
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
 			GL_TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex,
 			ResourceManager::Get().textures.Get(texHandle)->id, 0);
 	}
+	Clear();
 	glViewport(0, 0, size, size);
 }
 

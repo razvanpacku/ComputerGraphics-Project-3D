@@ -8,7 +8,7 @@ layout (triangle_strip, max_vertices=18) out;
 layout (std140) uniform Shadow {
 	mat4 LightSpace[6];
     vec4 LightPos;
-    float FarPlane;
+    float CascadedSplits[6];
 };
 
 out vec4 FragPos;

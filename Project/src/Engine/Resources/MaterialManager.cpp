@@ -66,7 +66,7 @@ void Material::SetTexture(const std::string& uniformName, TextureManager::Handle
 	textures[uniformName] = tex;
 }
 
-void Material::setTexture(const std::string& uniformName, const std::string& texName) {
+void Material::SetTexture(const std::string& uniformName, const std::string& texName) {
 	TextureManager& tm = ResourceManager::Get().textures;
 	TextureManager::Handle texHandle = tm.GetHandle(texName);
 	if(texHandle == textures[uniformName]) {
@@ -209,7 +209,7 @@ Material MaterialPolicy::Create(const std::string& name, const MaterialResourceI
 				continue;
 			}
 		}
-		else if (samplerName == "directionalShadow") {
+		else if (samplerName == "dirShadow") {
 			TextureManager::Handle shadowMap = tm.GetHandle("shadow/dir");
 			if (shadowMap.IsValid()) {
 				mat.textures[samplerName] = shadowMap;
@@ -217,6 +217,7 @@ Material MaterialPolicy::Create(const std::string& name, const MaterialResourceI
 				continue;
 			}
 		}
+		
 		// Just set to invalid handle for now, user can set later
 		mat.textures[samplerName] = TextureManager::Handle{};
 		mat.dirtyTextures[samplerName] = false;
@@ -563,7 +564,7 @@ void MaterialPolicy::ParseJSON(const nlohmann::json& j, Material& mat) {
 			// texture should be already loaded by the texture manager before the material manager starts loading materials
 			// and its name should be its path relative to the resoruces/textures/ directory
 			std::string texturePath = val.get<std::string>();
-			mat.setTexture(name, texturePath);
+			mat.SetTexture(name, texturePath);
 		}
 	}
 

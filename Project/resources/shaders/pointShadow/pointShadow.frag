@@ -7,7 +7,7 @@ in vec4 FragPos;
 layout (std140) uniform Shadow {
 	mat4 LightSpace[6];
     vec4 LightPos;
-    float FarPlane;
+    float CascadedSplits[6];
 };
 
 out float gl_FragDepth;
@@ -15,6 +15,6 @@ out float gl_FragDepth;
 void main(void){
 
 	float dist = length(FragPos.xyz - LightPos.xyz);
-	dist /= FarPlane;
+	dist /= CascadedSplits[0];
 	gl_FragDepth = dist;
 }

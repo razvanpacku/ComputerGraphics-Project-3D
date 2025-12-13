@@ -28,7 +28,7 @@ bool showBoundingBoxes = false;
 #define INVERSE_LIGHT_INTENSITY 0.05f
 
 LightingUBO light = LightingUBO{
-		glm::aligned_vec4(1.0f, 1.0f, 1.0f, 1.0f),
+		glm::aligned_vec4(1.0f, 1.0f, 1.0f, 0.0f),
 		glm::fixed_vec3(1.0f, 1.0f, 1.0f),
 		0.05f,
 		glm::fixed_vec3(1.0f, 0.09f * INVERSE_LIGHT_INTENSITY, 0.032f * INVERSE_LIGHT_INTENSITY)
@@ -40,6 +40,7 @@ glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
 float cameraSpeed = 2.5f;
 float sensitivity = 0.1f;
 float yaw = 90.0f, pitch = 0.0f;
+float nearPlane = 0.1f, farPlane = 10000.0f;
 glm::vec3 front;
 glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
 glm::vec3 right;
@@ -81,7 +82,7 @@ void UpdateCameraVectors() {
 
 glm::mat4 GetPerspectiveMatrix() {
 	auto& win = AppAttorney::GetWindow(App::Get());
-	return glm::infinitePerspective(glm::radians(90.0f), win.GetAspectRatio(), 0.1f);
+	return glm::infinitePerspective(glm::radians(90.0f), win.GetAspectRatio(), nearPlane);
 }
 
 glm::mat4 GetViewMatrix() {
@@ -89,6 +90,18 @@ glm::mat4 GetViewMatrix() {
 }
 
 // light related functions
+
+void GetCascadeSplits(float nearPlane, float farPlane, int cascadeCount, float lambda, fixed_float outSplits[]) {
+	float ratio = farPlane / nearPlane;
+	for (int i = 0; i < cascadeCount; i++) {
+		float p = (i + 1) / static_cast<float>(cascadeCount);
+		float log = nearPlane * std::pow(ratio, p);
+		float uniform = nearPlane + (farPlane - nearPlane) * p;
+		outSplits[i] = lambda * (log - uniform) + uniform;
+	}
+}
+
+fixed_float cascadeSplits[6];
 
 glm::vec3 GetLightDirection(LightingUBO lightInfo) {
 	if (lightInfo.lightPos.w) return glm::vec3(0.0f); // point light has no direction
@@ -108,6 +121,117 @@ glm::mat4 ComputeDirectionalLightMatrix(const glm::vec3& lightDir) {
 	glm::mat4 proj = glm::ortho(-size, size, -size, size, 1.0f, 100.0f);
 
 	return proj * view;
+}
+
+// Computes light-space matrices for each cascade
+void ComputeDirectionalLightCascades(
+	const glm::vec3& lightDir,
+	const glm::mat4& cameraView,
+	float fovDegrees,
+	float aspectRatio,
+	float nearPlane,
+	float farPlane,
+	int cascadeCount,
+	const fixed_float cascadeSplits[],
+	glm::mat4 outLightMatrices[]
+)
+{
+	// Inverse camera view for frustum corner generation
+	glm::mat4 invView = glm::inverse(cameraView);
+
+	// Normalize light direction
+	glm::vec3 lightDirection = glm::normalize(lightDir);
+
+	float prevSplitDist = nearPlane;
+
+	for (int cascade = 0; cascade < cascadeCount; cascade++)
+	{
+		float splitDist = cascadeSplits[cascade];
+
+		// --- 1. Compute frustum corners in view space ---
+		float nearDist = prevSplitDist;
+		float farDist = splitDist;
+
+		float tanHalfFov = tanf(glm::radians(fovDegrees * 0.5f));
+		float nearHeight = nearDist * tanHalfFov;
+		float nearWidth = nearHeight * aspectRatio;
+		float farHeight = farDist * tanHalfFov;
+		float farWidth = farHeight * aspectRatio;
+
+		glm::vec3 frustumCornersVS[8] =
+		{
+			// near plane
+			{ -nearWidth,  nearHeight, -nearDist },
+			{  nearWidth,  nearHeight, -nearDist },
+			{  nearWidth, -nearHeight, -nearDist },
+			{ -nearWidth, -nearHeight, -nearDist },
+
+			// far plane
+			{ -farWidth,   farHeight,  -farDist },
+			{  farWidth,   farHeight,  -farDist },
+			{  farWidth,  -farHeight,  -farDist },
+			{ -farWidth,  -farHeight,  -farDist }
+		};
+
+		// --- 2. Transform frustum corners to world space ---
+		glm::vec3 frustumCornersWS[8];
+		for (int i = 0; i < 8; i++)
+		{
+			glm::vec4 world = invView * glm::vec4(frustumCornersVS[i], 1.0f);
+			frustumCornersWS[i] = glm::vec3(world);
+		}
+
+		// --- 3. Compute frustum center ---
+		glm::vec3 center(0.0f);
+		for (int i = 0; i < 8; i++)
+			center += frustumCornersWS[i];
+		center /= 8.0f;
+
+		// --- 4. Build light view matrix ---
+		float lightDistance = 100.0f;
+		glm::vec3 lightPos = center - lightDirection * lightDistance;
+
+		glm::mat4 lightView = glm::lookAt(
+			lightPos,
+			center,
+			glm::vec3(0.0f, 1.0f, 0.0f)
+		);
+
+		// --- 5. Compute ortho bounds in light space ---
+		glm::vec3 minLS(FLT_MAX);
+		glm::vec3 maxLS(-FLT_MAX);
+
+		for (int i = 0; i < 8; i++)
+		{
+			glm::vec3 cornerLS = glm::vec3(lightView * glm::vec4(frustumCornersWS[i], 1.0f));
+			minLS = glm::min(minLS, cornerLS);
+			maxLS = glm::max(maxLS, cornerLS);
+		}
+
+		const float depthPadding = 1000.0f;
+
+		minLS.z -= depthPadding;
+		maxLS.z += depthPadding;
+
+		// stabilization
+		float shadowMapRes = 2048.0f;
+		glm::vec2 texelSize = (glm::vec2(maxLS) - glm::vec2(minLS)) / shadowMapRes;
+
+		minLS.x = floor(minLS.x / texelSize.x) * texelSize.x;
+		minLS.y = floor(minLS.y / texelSize.y) * texelSize.y;
+		maxLS.x = minLS.x + texelSize.x * shadowMapRes;
+		maxLS.y = minLS.y + texelSize.y * shadowMapRes;
+
+		glm::mat4 lightProj = glm::ortho(
+			minLS.x, maxLS.x,
+			minLS.y, maxLS.y,
+			-maxLS.z, -minLS.z
+		);
+
+		outLightMatrices[cascade] = lightProj * lightView;
+
+		prevSplitDist = splitDist;
+	}
 }
 
 void ComputePointLightMatrices(
@@ -213,7 +337,7 @@ void Renderer::Initialize(void)
 		meshProvider.transform = {
 			glm::vec3(-20.0f, 0.0f, 0.0f),
 			glm::quat(glm::vec3(0.0f, glm::radians(-90.0f), 0.0f)),
-			glm::vec3(50.0f, 50.0f, 1.0f)
+			glm::vec3(100.0f, 100.0f, 1.0f)
 		};
 		meshProvider.GenerateRenderables(tempRenderables);
 	}
@@ -356,6 +480,9 @@ Renderer::Renderer(App& app) : app(app), _rm(ResourceManager::Get())
 		showBoundingBoxes = !showBoundingBoxes;
 		});
 
+	// --------------------------------
+
+	GetCascadeSplits(nearPlane, farPlane, 6, 1, cascadeSplits);
 
 	Initialize();
 }
@@ -387,14 +514,16 @@ void Renderer::RenderFrame() {
 	auto batchedShadowCasters = BatchBuilder::Build(renderQueue.GetShadowCasters());
 	ShadowUBO shadowData;
 	shadowData.lightPos = light.lightPos;
-	shadowData.farPlane = ComputePointLightFarPlane(glm::vec3(light.attenuationFactor));
+	shadowData.cascadedSplits[0] = ComputePointLightFarPlane(glm::vec3(light.attenuationFactor));
 	std::string shaderName;
+	bool isPointLight = false;
 	if(light.lightPos.w) // point light
 	{
+		isPointLight = true;
 		ComputePointLightMatrices(
 			glm::vec3(light.lightPos),
 			0.1f,
-			shadowData.farPlane,
+			shadowData.cascadedSplits[0],
 			shadowData.lightSpaceMatrix
 		);
 		auto* shadowWriter = _rm.ubos.GetUboWriter("Shadow");
@@ -407,7 +536,20 @@ void Renderer::RenderFrame() {
 	else // directional light
 	{
 		glm::vec3 lightDir = GetLightDirection(light);
-		shadowData.lightSpaceMatrix[0] = ComputeDirectionalLightMatrix(lightDir);
+		auto& win = AppAttorney::GetWindow(App::Get());
+
+		ComputeDirectionalLightCascades(
+			lightDir,
+			GetViewMatrix(),
+			90.0f,
+			win.GetAspectRatio(),
+			nearPlane,
+			farPlane,
+			6,
+			cascadeSplits,
+			shadowData.lightSpaceMatrix
+		);
+		memcpy(shadowData.cascadedSplits, cascadeSplits, sizeof(fixed_float) * 6);
 		auto* shadowWriter = _rm.ubos.GetUboWriter("Shadow");
 		shadowWriter->SetBlock(shadowData);
 		shadowWriter->Upload();
@@ -417,7 +559,7 @@ void Renderer::RenderFrame() {
 	}
 	_rm.shaders.UseShader(shaderName, &glState);
 
-	for(auto& submission : batchedShadowCasters)
+	for (auto& submission : batchedShadowCasters)
 	{
 		DrawShadowSubmission(submission);
 	}

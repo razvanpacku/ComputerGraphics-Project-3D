@@ -141,6 +141,42 @@ bool Texture::CreateEmptyCubemap(int size, GLenum inFormat, GLenum format, GLenu
     return true;
 }
 
+//Create empty 2D texture array
+bool Texture::CreateEmpty2DArray(int w, int h, int depth, GLenum inFormat, GLenum format, GLenum type,
+    GLint minFilter, GLint magFilter, GLint wrap, bool PCF) {
+	width = static_cast<uint16_t>(w);
+	height = static_cast<uint16_t>(h);
+    channels = 0;
+	target = GL_TEXTURE_2D_ARRAY;
+	internalFormat = inFormat;
+
+	glGenTextures(1, &id);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, id);
+
+	// allocate
+	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, inFormat, width, height, depth, 0, format, type, nullptr);
+
+	// params
+
+    if (PCF) {
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    }
+    else {
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, minFilter);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, magFilter);
+    }
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, wrap);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, wrap);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_R, wrap);
+
+	glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+    return true;
+}
+
 // =========================================================
 // TexturePolicy
 // =========================================================
@@ -247,6 +283,29 @@ TextureManager::TextureHandle TextureManager::CreateDepthCubemap(const std::stri
     glTexParameterfv(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BORDER_COLOR, border);
     glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 
+    tex.alive = true;
+    return Register(name, tex);
+}
+
+TextureManager::TextureHandle TextureManager::CreateDepthTexture2DArray(const std::string& name,
+    int width, int height, int depth,
+    GLenum depthInternalFormat)
+{
+    GLenum format = GL_DEPTH_COMPONENT;             // GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT32, or GL_DEPTH_COMPONENT32F
+    GLenum type = GL_FLOAT;
+    Texture tex;
+    std::cout << "Creating depth texture array: " << name << " (" << width << "x" << height << "x" << depth << ")\n";
+    if (!tex.CreateEmpty2DArray(width, height, depth, depthInternalFormat, format, type,
+        GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_BORDER, true))
+    {
+        std::cerr << "Failed to create depth texture array: " << name << "\n";
+        return {};
+    }
+    // For depth maps we want border color 1.0 and clamp-to-border
+    glBindTexture(GL_TEXTURE_2D_ARRAY, tex.id);
+    float border[4] = { 1.f, 1.f, 1.f, 1.f };
+    glTexParameterfv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, border);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
     tex.alive = true;
     return Register(name, tex);
 }
@@ -367,6 +426,8 @@ void TextureManager::PreloadResources(const std::string& resourceDirectory)
 
 	// create the textures for shadow maps
 # define SHADOW_MAP_SIZE 2048
-	CreateDepthTexture2D("shadow/dir", SHADOW_MAP_SIZE, SHADOW_MAP_SIZE, GL_DEPTH_COMPONENT24);
-	CreateDepthCubemap("shadow/point", SHADOW_MAP_SIZE, GL_DEPTH_COMPONENT24);
+# define SHADOW_CASCADE_COUNT 6
+	CreateDepthCubemap("shadow/point", SHADOW_MAP_SIZE, GL_DEPTH_COMPONENT32F);
+	std::string shadowDirPrefix = "shadow/dir";
+	CreateDepthTexture2DArray(shadowDirPrefix, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE, SHADOW_CASCADE_COUNT, GL_DEPTH_COMPONENT32F);
 }

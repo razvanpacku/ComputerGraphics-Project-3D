@@ -22,6 +22,10 @@ struct Texture : public IResource {
 		GLint minFilter = GL_NEAREST, GLint magFilter = GL_NEAREST,
 		GLint wrap = GL_CLAMP_TO_EDGE, bool PCF = false);
 
+	bool CreateEmpty2DArray(int w, int h, int depth, GLenum internalFormat, GLenum format, GLenum type,
+		GLint minFilter = GL_NEAREST, GLint magFilter = GL_NEAREST,
+		GLint wrap = GL_CLAMP_TO_EDGE, bool PCF = false);
+
 	GLuint id = 0;
 	uint16_t width = 0;
 	uint16_t height = 0;
@@ -70,6 +74,10 @@ public:
 
 	// Creates a cube-map depth texture (for point light shadows)
 	TextureHandle CreateDepthCubemap(const std::string& name, int size,
+		GLenum depthInternalFormat = GL_DEPTH_COMPONENT24);
+
+	TextureHandle CreateDepthTexture2DArray(const std::string& name,
+		int width, int height, int depth,
 		GLenum depthInternalFormat = GL_DEPTH_COMPONENT24);
 
 	bool Bind(const TextureHandle& h, GLint unit, bool bindToUnit = true);

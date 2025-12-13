@@ -50,7 +50,7 @@ public:
 	}
 
 	void SetTexture(const std::string& uniformName, TextureManager::Handle tex);
-	void setTexture(const std::string& uniformName, const std::string& texName);
+	void SetTexture(const std::string& uniformName, const std::string& texName);
 
 	template <typename T>
 	std::optional<T> GetUniform(const std::string& name, size_t index = 0) const {

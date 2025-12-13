@@ -151,6 +151,7 @@ bool IsSamplerType(GLenum type) {
 	case GL_SAMPLER_2D_ARRAY:
 	case GL_SAMPLER_2D_SHADOW:
 	case GL_SAMPLER_CUBE_SHADOW:
+	case GL_SAMPLER_2D_ARRAY_SHADOW:
 		return true;
 	default:
 		return false;

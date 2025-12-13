@@ -217,11 +217,13 @@ void ShaderPolicy::ReflectUniforms(GLuint program, ShaderReflection& out)
             continue; // part of a UBO or optimized out
 
         if (IsSamplerType(type)) {
+
             SamplerInfo samp;
             samp.name = baseName;
             samp.type = type;
             samp.location = location;
-			samp.textureUnit = textureUnitCounter++;
+            samp.textureUnit = textureUnitCounter;
+			textureUnitCounter += size;
 
             // set the uniform immediately (so the shader now knows its texture unit)
 
@@ -230,9 +232,25 @@ void ShaderPolicy::ReflectUniforms(GLuint program, ShaderReflection& out)
                 glUseProgram(program);
             }
 
-            glUniform1i(location, samp.textureUnit);
+            if (size == 1) {
+                glUniform1i(location, samp.textureUnit);
+				out.samplers[baseName] = samp;
 
-            out.samplers[baseName] = samp;
+                continue;
+            }
+
+            //glUniform1i(location, samp.textureUnit);
+            for (GLint idx = 0; idx < size; idx++) {
+                glUniform1i(location + idx, samp.textureUnit + idx);
+
+                // for texture arrays, we treat them differently from uniforms and store each entry separately
+				SamplerInfo arraySampElem = samp;
+				arraySampElem.name = baseName + "[" + std::to_string(idx) + "]";
+				arraySampElem.location = location + idx;
+				arraySampElem.textureUnit = samp.textureUnit + idx;
+				out.samplers[arraySampElem.name] = arraySampElem;
+            }
+
             continue;
         }
 

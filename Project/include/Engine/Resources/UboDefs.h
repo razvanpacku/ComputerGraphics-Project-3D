@@ -4,6 +4,11 @@
 
 #define STD140 alignas(16)
 
+// =========================================
+// fixed_vec3
+//
+// A 3-component vector aligned to 16 bytes for UBO compatibility.
+// =========================================
 #define FIXED_VEC3 glm::aligned_vec4
 
 namespace glm {
@@ -22,6 +27,77 @@ inline glm::fixed_vec3 fixedVec3(const glm::vec3& v) {
 	return glm::fixed_vec3(v);
 }
 
+// =========================================
+// fixed_float
+//
+// A float aligned to 16 bytes for UBO compatibility. Use this when you need an array of floats.
+// =========================================
+
+struct fixed_float
+{
+public:
+	STD140 float value;
+private:
+	float _padding[3];
+public:
+    // Constructors
+    fixed_float() : value(0.0f) {}
+    fixed_float(float v) : value(v) {}
+
+    // Implicit conversion to float
+    operator float() const { return value; }
+
+    // Assignment from float
+    fixed_float& operator=(float v) { value = v; return *this; }
+
+    // Unary operators
+    fixed_float operator+() const { return fixed_float(+value); }
+    fixed_float operator-() const { return fixed_float(-value); }
+
+    // Arithmetic operators
+    fixed_float operator+(const fixed_float& rhs) const { return fixed_float(value + rhs.value); }
+    fixed_float operator-(const fixed_float& rhs) const { return fixed_float(value - rhs.value); }
+    fixed_float operator*(const fixed_float& rhs) const { return fixed_float(value * rhs.value); }
+    fixed_float operator/(const fixed_float& rhs) const { return fixed_float(value / rhs.value); }
+
+    fixed_float& operator+=(const fixed_float& rhs) { value += rhs.value; return *this; }
+    fixed_float& operator-=(const fixed_float& rhs) { value -= rhs.value; return *this; }
+    fixed_float& operator*=(const fixed_float& rhs) { value *= rhs.value; return *this; }
+    fixed_float& operator/=(const fixed_float& rhs) { value /= rhs.value; return *this; }
+
+    // Arithmetic with float
+    fixed_float operator+(float rhs) const { return fixed_float(value + rhs); }
+    fixed_float operator-(float rhs) const { return fixed_float(value - rhs); }
+    fixed_float operator*(float rhs) const { return fixed_float(value * rhs); }
+    fixed_float operator/(float rhs) const { return fixed_float(value / rhs); }
+
+    fixed_float& operator+=(float rhs) { value += rhs; return *this; }
+    fixed_float& operator-=(float rhs) { value -= rhs; return *this; }
+    fixed_float& operator*=(float rhs) { value *= rhs; return *this; }
+    fixed_float& operator/=(float rhs) { value /= rhs; return *this; }
+
+    // Comparison operators
+    bool operator==(const fixed_float& rhs) const { return value == rhs.value; }
+    bool operator!=(const fixed_float& rhs) const { return value != rhs.value; }
+    bool operator< (const fixed_float& rhs) const { return value < rhs.value; }
+    bool operator<=(const fixed_float& rhs) const { return value <= rhs.value; }
+    bool operator> (const fixed_float& rhs) const { return value > rhs.value; }
+    bool operator>=(const fixed_float& rhs) const { return value >= rhs.value; }
+
+    bool operator==(float rhs) const { return value == rhs; }
+    bool operator!=(float rhs) const { return value != rhs; }
+    bool operator< (float rhs) const { return value < rhs; }
+    bool operator<=(float rhs) const { return value <= rhs; }
+    bool operator> (float rhs) const { return value > rhs; }
+    bool operator>=(float rhs) const { return value >= rhs; }
+
+    // Optional: swap with float
+    void set(float v) { value = v; }
+    float get() const { return value; }
+};
+
+// --- UBO Definitions ---
+
 struct STD140 LightingUBO
 {
 	glm::aligned_vec4 lightPos;
@@ -34,7 +110,7 @@ struct STD140 ShadowUBO
 {
 	glm::aligned_mat4 lightSpaceMatrix[6];
 	glm::aligned_vec4 lightPos;
-	float farPlane;
+    fixed_float cascadedSplits[6];
 };
 
 struct STD140 MaterialUBO {
