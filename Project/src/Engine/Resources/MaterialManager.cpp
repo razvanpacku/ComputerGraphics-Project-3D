@@ -200,6 +200,23 @@ Material MaterialPolicy::Create(const std::string& name, const MaterialResourceI
 
 	// Parse samplers
 	for (const auto& [samplerName, samplerInfo] : reflection.samplers) {
+		// automatically set textures for shadow maps if they exist
+		if(samplerName == "pointShadow"){
+			TextureManager::Handle shadowCubemap = tm.GetHandle("shadow/point");
+			if(shadowCubemap.IsValid()){
+				mat.textures[samplerName] = shadowCubemap;
+				mat.dirtyTextures[samplerName] = true;
+				continue;
+			}
+		}
+		else if (samplerName == "directionalShadow") {
+			TextureManager::Handle shadowMap = tm.GetHandle("shadow/dir");
+			if (shadowMap.IsValid()) {
+				mat.textures[samplerName] = shadowMap;
+				mat.dirtyTextures[samplerName] = true;
+				continue;
+			}
+		}
 		// Just set to invalid handle for now, user can set later
 		mat.textures[samplerName] = TextureManager::Handle{};
 		mat.dirtyTextures[samplerName] = false;
@@ -775,6 +792,11 @@ void MaterialPolicy::ParseJSON(const nlohmann::json& j, Material& mat) {
 				}
 			}
 		}
+	}
+
+	// check if material casts shadows
+	if (j.contains("castShadows") && j["castShadows"].is_boolean()) {
+		mat.castShadows = j["castShadows"].get<bool>();
 	}
 }
 

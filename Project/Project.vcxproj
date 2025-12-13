@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Engine\Renderer\ShadowFramebuffer.cpp" />
     <ClCompile Include="src\Engine\Resources\MeshFactory.cpp" />
     <ClCompile Include="src\Engine\Renderer\Culling\Frustum.cpp" />
     <ClCompile Include="src\Engine\Renderer\Culling\BoundingBox.cpp" />
@@ -444,6 +445,7 @@
     <ClInclude Include="include\Engine\Renderer\RenderableProvider\IRendarableProvider.h" />
     <ClInclude Include="include\Engine\Components\Transform.h" />
     <ClInclude Include="include\Engine\Resources\MeshFactory.h" />
+    <ClInclude Include="include\Engine\Renderer\ShadowFramebuffer.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="include\external\assimp\color4.inl" />
@@ -591,6 +593,7 @@
     <None Include="include\external\glm\gtx\vector_query.inl" />
     <None Include="include\external\glm\gtx\wrap.inl" />
     <None Include="resources\shaders\defs.glsl" />
+    <None Include="resources\shaders\pointShadow\pointShadow.geom" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

@@ -126,6 +126,12 @@ void Window::ToggleFullscreen() {
 	glfwSetCursorPos(window, centerX, centerY);
 }
 
+void Window::ResetViewport() {
+	int fbW = 0, fbH = 0;
+	glfwGetFramebufferSize(window, &fbW, &fbH);
+	glViewport(0, 0, fbW, fbH);
+}
+
 void Window::FramebufferSizeCallback(GLFWwindow* window, int width, int height)
 {
 	if (width == 0 || height == 0)

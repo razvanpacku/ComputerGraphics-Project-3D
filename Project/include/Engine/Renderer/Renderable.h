@@ -58,6 +58,9 @@ struct Renderable
 
 	bool cullBackfaces = true;
 
+	bool castShadows = false;
+	bool receiveShadows = false;
+
 	InstanceData* instanceData = nullptr; // optional instance data for instanced rendering
 
 	RenderLayer layer = RenderLayer::Opaque;

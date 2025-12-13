@@ -4,6 +4,7 @@
             "name": "rocketMat",
             "shader": "example",
             "uniforms": {
+                "receiveShadows": 1
             },
             "textures": {
                 "albedo": "rocket.png",
@@ -16,7 +17,8 @@
                     "metalicity": 0.0,
                     "overrideMetalness": 0
                 }
-            }
+            },
+            "castShadows": true
         }
     ],
     "meshMaterialMap": {

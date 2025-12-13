@@ -30,6 +30,13 @@ struct STD140 LightingUBO
 	glm::fixed_vec3 attenuationFactor;
 };
 
+struct STD140 ShadowUBO
+{
+	glm::aligned_mat4 lightSpaceMatrix[6];
+	glm::aligned_vec4 lightPos;
+	float farPlane;
+};
+
 struct STD140 MaterialUBO {
 	float shininess;
 	float specularStrength;

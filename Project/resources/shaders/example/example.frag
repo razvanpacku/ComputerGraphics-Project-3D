@@ -11,6 +11,11 @@ out vec4 out_Color;
 uniform sampler2D albedo;
 uniform sampler2D metalness;
 
+uniform sampler2DShadow directionalShadow;
+uniform samplerCubeShadow pointShadow;
+
+uniform bool receiveShadows;
+
 layout (std140) uniform Camera {
 	FIXED_VEC3 viewPos;
 	mat4 view;
@@ -24,12 +29,74 @@ layout(std140) uniform Lighting {
 	FIXED_VEC3 attenuationFactor;
 };
 
+layout (std140) uniform Shadow {
+	mat4 LightSpace[6];
+    vec4 LightPos;
+    float FarPlane;
+};
+
 layout(std140) uniform Material {
 	float shininess;
 	float specularStrength;
 	float metalicity;
 	bool overrideMetalness;
 };
+
+float ShadowCalculation(vec4 fragPosLightSpace)
+{
+    // Perform perspective divide
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    // Transform from [-1,1] to [0,1] for texture coordinates
+    projCoords = projCoords * 0.5 + 0.5;
+    
+    // Check if fragment is outside shadow map
+    if(projCoords.z > 1.0) return 0.0;
+
+	// ---- planar bias ----
+    float depth = projCoords.z;
+
+    float dzdx = dFdx(depth);
+    float dzdy = dFdy(depth);
+
+    // Size of one texel in shadow map
+    vec2 texelSize = 1.0 / textureSize(directionalShadow, 0);
+
+    float bias = abs(dzdx) * texelSize.x +
+                 abs(dzdy) * texelSize.y;
+
+    // Small constant bias for numerical stability
+    bias += 0.0005;
+
+    // Hardware PCF does comparison internally
+    float shadow = 1.0 - texture(directionalShadow,
+                                 vec3(projCoords.xy, depth - bias));
+    return shadow;
+}
+
+float ShadowCalculationPointLight(vec3 fragPos)
+{
+    vec3 lightToFrag = fragPos - LightPos.xyz;
+    float currentDepth = length(lightToFrag);
+
+	vec3 norm = normalize(ex_Normal);
+	vec3 lightDir = normalize(lightPos.xyz - fragPos);
+
+	float minBias   = 0.01;   // constant bias
+    float slopeBias = 0.005;   // slope-based bias
+
+    float bias = max(
+        slopeBias * (1.0 - dot(norm, lightDir)),
+        minBias
+    );
+
+	float depth = currentDepth / FarPlane;
+
+	bias *= depth;
+
+    float shadow = 1.0 - texture(pointShadow,
+                                 vec4(lightToFrag, depth - bias));
+    return shadow;
+}
 
 void main(void){
 	FIXED_VEC3_INIT(viewPos);
@@ -87,11 +154,22 @@ void main(void){
 		realMetalicity = (MetColor.r + MetColor.g + MetColor.b) / 3;
 	}
 
+	// shadow
+	float shadow = 0.0;
+	if(receiveShadows){
+		if (lightPos.w == 0.0) {
+			shadow = ShadowCalculation(LightSpace[0] * vec4(fragPos, 1.0));
+		}
+		else{
+			shadow = ShadowCalculationPointLight(fragPos);
+		}
+	}
+
 	// Combine all components
 
 	vec3 diffuseComponent = diffuse * surfaceColor * (1.0 - realMetalicity);
 	vec3 specularComponent = specular * mix(vec3(1.0f), surfaceColor, realMetalicity);
-	vec4 result = vec4(ambient, 1.0f) * TexColor + vec4(attenuation * (diffuseComponent + specularComponent), 1.0f);
+	vec4 result = vec4(ambient, 1.0f) * TexColor + vec4(attenuation * (diffuseComponent + specularComponent) * (1.0 - shadow), 1.0f);
 
 	out_Color = result;
 }

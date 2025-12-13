@@ -25,6 +25,14 @@ std::vector<Renderable> tempRenderables;
 std::vector<Renderable> boundingBoxes;
 bool showBoundingBoxes = false;
 #define ASTEROID_COUNT 1000
+#define INVERSE_LIGHT_INTENSITY 0.05f
+
+LightingUBO light = LightingUBO{
+		glm::aligned_vec4(1.0f, 1.0f, 1.0f, 1.0f),
+		glm::fixed_vec3(1.0f, 1.0f, 1.0f),
+		0.05f,
+		glm::fixed_vec3(1.0f, 0.09f * INVERSE_LIGHT_INTENSITY, 0.032f * INVERSE_LIGHT_INTENSITY)
+};
 
 //hardcoded camera related variables
 #include "Engine/InputManager.h"
@@ -80,6 +88,65 @@ glm::mat4 GetViewMatrix() {
 	return glm::lookAt(cameraPos, cameraPos + front, up);
 }
 
+// light related functions
+
+glm::vec3 GetLightDirection(LightingUBO lightInfo) {
+	if (lightInfo.lightPos.w) return glm::vec3(0.0f); // point light has no direction
+	return -glm::normalize(glm::vec3(lightInfo.lightPos));
+}
+
+glm::mat4 ComputeDirectionalLightMatrix(const glm::vec3& lightDir) {
+
+	//TODO: Choose proper center and ortho bounds based on scene contents
+	glm::vec3 center = cameraPos;
+	glm::vec3 pos = center - lightDir * 25.0f; // Push the camera "behind" the scene
+
+	glm::mat4 view = glm::lookAt(pos, center, glm::vec3(0.0f, 1.0f, 0.0f));
+
+	// Ortho bounds (tweak depending on scene)
+	float size = 20.0f;
+	glm::mat4 proj = glm::ortho(-size, size, -size, size, 1.0f, 100.0f);
+
+	return proj * view;
+}
+
+void ComputePointLightMatrices(
+	const glm::vec3& lightPos,
+	float nearPlane,
+	float farPlane,
+	glm::mat4 outMatrices[6]
+)
+{
+	glm::mat4 proj = glm::perspective(glm::radians(90.0f), 1.0f, nearPlane, farPlane);
+
+	outMatrices[0] = proj * glm::lookAt(lightPos, lightPos + glm::vec3(1, 0, 0), glm::vec3(0, -1, 0));
+	outMatrices[1] = proj * glm::lookAt(lightPos, lightPos + glm::vec3(-1, 0, 0), glm::vec3(0, -1, 0));
+	outMatrices[2] = proj * glm::lookAt(lightPos, lightPos + glm::vec3(0, 1, 0), glm::vec3(0, 0, 1));
+	outMatrices[3] = proj * glm::lookAt(lightPos, lightPos + glm::vec3(0, -1, 0), glm::vec3(0, 0, -1));
+	outMatrices[4] = proj * glm::lookAt(lightPos, lightPos + glm::vec3(0, 0, 1), glm::vec3(0, -1, 0));
+	outMatrices[5] = proj * glm::lookAt(lightPos, lightPos + glm::vec3(0, 0, -1), glm::vec3(0, -1, 0));
+}
+
+float ComputePointLightFarPlane(const glm::vec3& attenuation)
+{
+	float c = attenuation.x;
+	float b = attenuation.y;
+	float a = attenuation.z;
+
+	float maxBrightness = 1.0f;
+	float threshold = 0.01f; // 1%
+
+	// Solve quadratic eq: a*d^2 + b*d + (c - maxBrightness/threshold) = 0
+	float c2 = c - (maxBrightness / threshold); // drop-off at 1%
+	float discriminant = b * b - 4 * a * c2;
+
+	if (a == 0 || discriminant < 0)
+		return 25.0f; // fallback
+
+	float d = (-b + sqrt(discriminant)) / (2 * a);
+	return std::max(d, 1.0f);
+}
+
 #define REN_DELTA_TIME() ((float)App::Get().DeltaTime())
 
 float angle = 0.0f;
@@ -89,12 +156,7 @@ void Renderer::Initialize(void)
 	auto& _rm = ResourceManager::Get();
 
 	auto writer = _rm.ubos.GetUboWriter("Lighting");
-	writer->SetBlock((LightingUBO{
-		glm::aligned_vec4(1.0f, 1.0f, 1.0f, 0.0f),
-		glm::fixed_vec3(1.0f, 1.0f, 1.0f),
-		0.05f,
-		glm::fixed_vec3(1.0f, 0.09f, 0.032f)
-		}));
+	writer->SetBlock(light);
 	writer->Upload();
 
 	auto* modell = _rm.models.Get("asteroid");
@@ -144,6 +206,17 @@ void Renderer::Initialize(void)
 		glm::vec3(0.2f)
 	};
 	modelProvider.GenerateRenderables(tempRenderables);
+	{
+		MeshRenderableProvider meshProvider;
+		meshProvider.meshHandle = _rm.meshes.GetHandle("primitive/quad");
+		meshProvider.materialHandle = _rm.materials.GetHandle("matte");
+		meshProvider.transform = {
+			glm::vec3(-20.0f, 0.0f, 0.0f),
+			glm::quat(glm::vec3(0.0f, glm::radians(-90.0f), 0.0f)),
+			glm::vec3(50.0f, 50.0f, 1.0f)
+		};
+		meshProvider.GenerateRenderables(tempRenderables);
+	}
 }
 void Renderer::RenderFunction(void)
 {
@@ -170,7 +243,7 @@ void Renderer::RenderFunction(void)
 		auto& r = tempRenderables[i];
 		// make the ring of asteroids slowly rotate, based on their distance from center
 		float distance = glm::length(glm::vec2(r.transform.position.x, r.transform.position.z));
-		float rotationSpeed = 100.0f / distance; // closer asteroids rotate faster
+		float rotationSpeed = 100.0f / (distance * distance); // closer asteroids rotate faster
 		// update position based on rotation around Y axis
 		float currentAngle = glm::degrees(atan2(r.transform.position.z, r.transform.position.x));
 		float deltaAngle = rotationSpeed * App::Get().DeltaTime();
@@ -310,6 +383,50 @@ void Renderer::Clear() const
 // =================================================
 
 void Renderer::RenderFrame() {
+	// === Shadow Pass ===
+	auto batchedShadowCasters = BatchBuilder::Build(renderQueue.GetShadowCasters());
+	ShadowUBO shadowData;
+	shadowData.lightPos = light.lightPos;
+	shadowData.farPlane = ComputePointLightFarPlane(glm::vec3(light.attenuationFactor));
+	std::string shaderName;
+	if(light.lightPos.w) // point light
+	{
+		ComputePointLightMatrices(
+			glm::vec3(light.lightPos),
+			0.1f,
+			shadowData.farPlane,
+			shadowData.lightSpaceMatrix
+		);
+		auto* shadowWriter = _rm.ubos.GetUboWriter("Shadow");
+		shadowWriter->SetBlock(shadowData);
+		shadowWriter->Upload();
+
+		pointShadowFBO.BindForWriting();
+		shaderName = "pointShadow";
+	}
+	else // directional light
+	{
+		glm::vec3 lightDir = GetLightDirection(light);
+		shadowData.lightSpaceMatrix[0] = ComputeDirectionalLightMatrix(lightDir);
+		auto* shadowWriter = _rm.ubos.GetUboWriter("Shadow");
+		shadowWriter->SetBlock(shadowData);
+		shadowWriter->Upload();
+
+		dirShadowFBO.BindForWriting();
+		shaderName = "dirShadow";
+	}
+	_rm.shaders.UseShader(shaderName, &glState);
+
+	for(auto& submission : batchedShadowCasters)
+	{
+		DrawShadowSubmission(submission);
+	}
+
+
+	ShadowFramebuffer::Unbind(glState);
+	auto& win = AppAttorney::GetWindow(App::Get());
+	win.ResetViewport();
+	// === Main Pass ===
 	auto transparentList = renderQueue.GetSortedLayer(RenderLayer::Transparent);
 	//sort back to front using renderable::sortDistance
 	std::stable_sort(transparentList.begin(), transparentList.end(),
@@ -325,11 +442,6 @@ void Renderer::RenderFrame() {
 	DrawList(batchedOpaque);
 	DrawList(batchedTransparent);
 	DrawList(batchedGUI);
-	/*
-	DrawList(renderQueue.GetSortedLayer(RenderLayer::Opaque));
-	DrawList(transparentList);
-	DrawList(renderQueue.GetSortedLayer(RenderLayer::GUI));
-	*/
 }
 
 void Renderer::DrawList(const std::vector<RenderSubmission>& submissions)
@@ -373,6 +485,40 @@ void Renderer::DrawSubmission(const RenderSubmission& submission)
 	if (submission.item.instanceData)
 	{
 		if(mesh->isInstancingEnabled() == false)
+		{
+			mesh->EnableInstancing(true);
+		}
+		mesh->UploadInstancedData(submission.item.instanceData->modelMatrices.data(), submission.item.instanceData->count);
+		glDrawElementsInstanced(primitive, mesh->indexCount, GL_UNSIGNED_INT, 0, submission.item.instanceData->count);
+	}
+	else {
+		glDrawElements(primitive, mesh->indexCount, GL_UNSIGNED_INT, 0);
+	}
+}
+
+void Renderer::DrawShadowSubmission(const RenderSubmission& submission)
+{
+	Mesh* mesh = nullptr;
+	if (submission.item.mesh)
+		mesh = submission.item.mesh;
+	else
+		mesh = _rm.meshes.Get(submission.item.meshHandle);
+	if (!mesh) return;
+
+	//face culling is always enabled for shadow pass
+	// no material application needed for shadow pass
+
+	if ((submission.item.meshHandle.IsValid() && glState.currentMesh != submission.item.meshHandle) ||
+		(glState.currentDynamicMesh != submission.item.mesh)) {
+		mesh->Bind();
+		glState.currentMesh = submission.item.meshHandle;
+		glState.currentDynamicMesh = submission.item.mesh;
+	}
+
+	GLenum primitive = submission.item.primitive != 0 ? submission.item.primitive : mesh->primitive;
+	if (submission.item.instanceData)
+	{
+		if (mesh->isInstancingEnabled() == false)
 		{
 			mesh->EnableInstancing(true);
 		}

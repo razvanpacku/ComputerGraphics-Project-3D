@@ -31,6 +31,7 @@ public:
 	void SetMouseMode(MouseMode mode);
 
 	void ToggleFullscreen();
+	void ResetViewport();
 private:
 	static void FramebufferSizeCallback(GLFWwindow* window, int width, int height);
 

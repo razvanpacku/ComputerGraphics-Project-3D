@@ -5,6 +5,8 @@
 #include <iostream>
 #include "Engine/Resources/ResourceManager.h"
 
+#include "Engine/Renderer/GLStateCache.h"
+
 // =========================================================
 // Shader
 // =========================================================
@@ -155,11 +157,13 @@ GLuint ShaderPolicy::Compile(GLenum type, const std::string& src)
     return shader;
 }
 
-GLuint ShaderPolicy::LinkProgram(GLuint vs, GLuint fs)
+GLuint ShaderPolicy::LinkProgram(GLuint vs, GLuint fs, GLuint gs)
 {
     GLuint program = glCreateProgram();
     glAttachShader(program, vs);
     glAttachShader(program, fs);
+    if (gs != 0)
+		glAttachShader(program, gs);
     glLinkProgram(program);
 
     GLint success;
@@ -350,7 +354,14 @@ Shader ShaderPolicy::Create(const std::string& name, const ShaderResourceInfo& s
     std::string fsSrc = LoadFile(shaderInfo.fragmentPath);
     GLuint vs = Compile(GL_VERTEX_SHADER, vsSrc);
     GLuint fs = Compile(GL_FRAGMENT_SHADER, fsSrc);
-    GLuint program = LinkProgram(vs, fs);
+	GLuint gs = 0;
+
+    if (!shaderInfo.geometryPath.empty()) {
+		std::string gsSrc = LoadFile(shaderInfo.geometryPath);
+		gs = Compile(GL_GEOMETRY_SHADER, gsSrc);
+    }
+
+    GLuint program = LinkProgram(vs, fs, gs);
 
     if(program == 0)
     {
@@ -407,12 +418,17 @@ ShaderManager::ShaderManager()
 	ShaderPolicy::_sm = this;
 }
 
-void ShaderManager::UseShader(const ShaderHandle& h)
+void ShaderManager::UseShader(const ShaderHandle& h, GLStateCache* glState)
 {
     const Shader* shader = Get(h);
     if (shader && shader->program != currentProgram) {
-		currentProgram = shader->program;
-        glUseProgram(shader->program);
+        if(!glState || glState->currentShader != h) {
+            if (glState) {
+                glState->currentShader = h;
+            }
+            currentProgram = shader->program;
+            glUseProgram(shader->program);
+		}
     }
 }
 
@@ -424,11 +440,17 @@ void ShaderManager::UseShader(const Shader& shader)
     }
 }
 
-void ShaderManager::UseShader(const std::string& name) {
+void ShaderManager::UseShader(const std::string& name, GLStateCache* glState) {
     const Shader* shader = Get(name);
+	auto handle = GetHandle(name);
     if (shader && shader->program != currentProgram) {
-        currentProgram = shader->program;
-        glUseProgram(shader->program);
+        if(!glState || glState->currentShader != handle) {
+            if (glState) {
+                glState->currentShader = handle;
+            }
+            currentProgram = shader->program;
+            glUseProgram(shader->program);
+		}
     }
 }
 
@@ -452,11 +474,22 @@ void ShaderManager::PreloadResources(const std::string& resourceDirectory)
             std::string shaderName = entry.path().filename().string();
             std::string vertexPath = (entry.path() / (shaderName + ".vert")).string();
             std::string fragmentPath = (entry.path() / (shaderName + ".frag")).string();
-            std::cout << "  Loading shader: " << shaderName << " ("
-				<< vertexPath << ", " << fragmentPath << ")\n";
+			std::string geometryPath = (entry.path() / (shaderName + ".geom")).string();
+
+            //check if geoemtry shader exists
+            if (!std::filesystem::exists(geometryPath)) {
+				geometryPath = "";
+                std::cout << "  Loading shader: " << shaderName << " ("
+                    << vertexPath << ", " << fragmentPath << ")\n";
+            }
+            else {
+                std::cout << "  Loading shader: " << shaderName << " ("
+                    << vertexPath << ", " << fragmentPath << ", " << geometryPath << ")\n";
+            }
             ShaderResourceInfo info;
             info.vertexPath = vertexPath;
             info.fragmentPath = fragmentPath;
+			info.geometryPath = geometryPath;
             Load(shaderName, info);
         }
 	}

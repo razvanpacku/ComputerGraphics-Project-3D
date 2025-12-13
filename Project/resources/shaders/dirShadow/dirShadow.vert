@@ -7,13 +7,13 @@ layout(location = INSTANCE_LAYOUT) in mat4 in_instanceMatrix;
 
 out vec4 gl_Position; 
 
-layout (std140) uniform Camera {
-	FIXED_VEC3 viewPos;
-	mat4 view;
-	mat4 projection;
+layout (std140) uniform Shadow {
+	mat4 LightSpace[6];
+    vec4 LightPos;
+    float FarPlane;
 };
 
 void main ()
 {
-	gl_Position = projection * view * in_instanceMatrix * in_Position;
+	gl_Position = LightSpace[0] * in_instanceMatrix * in_Position;
 }

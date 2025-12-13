@@ -27,6 +27,8 @@ Renderable::Renderable(const Renderable& other) noexcept :
 	primitive(other.primitive),
 	aabb(other.aabb),
 	hasBounds(other.hasBounds),
+	castShadows(other.castShadows),
+	receiveShadows(other.receiveShadows),
 	cullBackfaces(other.cullBackfaces),
 	instanceData(other.instanceData)
 {
@@ -41,6 +43,8 @@ Renderable::Renderable(Renderable&& other) noexcept :
 	primitive(other.primitive),
 	aabb(other.aabb),
 	hasBounds(other.hasBounds),
+	castShadows(other.castShadows),
+	receiveShadows(other.receiveShadows),
 	cullBackfaces(other.cullBackfaces),
 	instanceData(other.instanceData)
 {

@@ -5,15 +5,9 @@
 layout (location = 0) in vec4 in_Position;
 layout(location = INSTANCE_LAYOUT) in mat4 in_instanceMatrix;
 
-out vec4 gl_Position; 
-
-layout (std140) uniform Camera {
-	FIXED_VEC3 viewPos;
-	mat4 view;
-	mat4 projection;
-};
+//out vec4 gl_Position; 
 
 void main ()
 {
-	gl_Position = projection * view * in_instanceMatrix * in_Position;
+	gl_Position = in_instanceMatrix * in_Position;
 }

@@ -1,19 +1,31 @@
 #include "Engine/Renderer/RenderQueue.h"
 
+#include <algorithm>
+
 // =================================================
 // RenderQueue
 // =================================================
 
 void RenderQueue::Clear()
 {
-	opaque = std::priority_queue<RenderSubmission>();
-	transparent = std::priority_queue<RenderSubmission>();
-	gui = std::priority_queue<RenderSubmission>();
+	opaque.clear();
+	transparent.clear();
+	gui.clear();
+	shadowCasters.clear();
 	nextSubmitIndex = 1;
 }
 
 void RenderQueue::Push(const Renderable& renderable)
 {
+
+	RenderSubmission submission;
+	submission.item = renderable;
+	submission.sortKey = renderable.GetSortKey();
+
+	if(submission.item.castShadows) {
+		shadowCasters.push_back(submission);
+	}
+
 	// Check if renderable is within the view frustum if it has bounds
 	if (renderable.hasBounds) {
 		//get transformed AABB
@@ -26,19 +38,15 @@ void RenderQueue::Push(const Renderable& renderable)
 		}
 	}
 
-	RenderSubmission submission;
-	submission.item = renderable;
-	submission.sortKey = renderable.GetSortKey();
-
 	switch (renderable.layer) {
 		case RenderLayer::Opaque:
-			opaque.push(std::move(submission));
+			opaque.push_back(std::move(submission));
 			break;
 		case RenderLayer::Transparent:
-			transparent.push(std::move(submission));
+			transparent.push_back(std::move(submission));
 			break;
 		case RenderLayer::GUI:
-			gui.push(std::move(submission));
+			gui.push_back(std::move(submission));
 			break;
 	}
 }
@@ -50,27 +58,30 @@ void RenderQueue::Push(const std::vector<Renderable>& renderables)
 	}
 }
 
-std::vector<RenderSubmission>& RenderQueue::GetSortedLayer(RenderLayer layer) const
+std::vector<RenderSubmission>& RenderQueue::GetSortedLayer(RenderLayer layer)
 {
-	static std::vector<RenderSubmission> sortedSubmissions;
-	sortedSubmissions.clear();
-	std::priority_queue<RenderSubmission> tempQueue;
+	std::vector<RenderSubmission>* target = nullptr;
+
 	switch (layer) {
-		case RenderLayer::Opaque:
-			tempQueue = opaque;
-			break;
-		case RenderLayer::Transparent:
-			tempQueue = transparent;
-			break;
-		case RenderLayer::GUI:
-			tempQueue = gui;
-			break;
+	case RenderLayer::Opaque:
+		target = &opaque;
+		break;
+	case RenderLayer::Transparent:
+		target = &transparent;
+		break;
+	case RenderLayer::GUI:
+		target = &gui;
+		break;
 	}
-	while (!tempQueue.empty()) {
-		sortedSubmissions.push_back(tempQueue.top());
-		tempQueue.pop();
-	}
-	return sortedSubmissions;
+
+	std::sort(target->begin(), target->end());
+	return *target;
+}
+
+std::vector<RenderSubmission>& RenderQueue::GetShadowCasters()
+{
+	std::sort(shadowCasters.begin(), shadowCasters.end());
+	return shadowCasters;
 }
 
 size_t RenderQueue::TotalSize() const

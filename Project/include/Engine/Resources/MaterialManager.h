@@ -51,9 +51,26 @@ public:
 
 	void SetTexture(const std::string& uniformName, TextureManager::Handle tex);
 	void setTexture(const std::string& uniformName, const std::string& texName);
+
+	template <typename T>
+	std::optional<T> GetUniform(const std::string& name, size_t index = 0) const {
+		auto it = uniforms.find(name);
+		if (it == uniforms.end()) return std::nullopt;
+		return it->second.Get<T>(index);
+	}
+
+	template <typename T>
+	std::vector<T> GetUniformArray(const std::string& name) const {
+		auto it = uniforms.find(name);
+		if (it == uniforms.end()) return {};
+		return it->second.GetArray<T>();
+	}
+
 	UboWriter* GetLocalUboWriter(const std::string& blockName);
 
 	void Apply(GLStateCache* glState = nullptr);
+
+	bool castShadows = false;
 
 
 private:
@@ -70,6 +87,7 @@ private:
 
 struct MaterialResourceInfo {
 	std::string shaderName;						// name of the shader to use
+	bool castShadows = false;				// whether the material should cast shadows
 };
 
 class MaterialPolicy : public IResourcePolicy<Material, MaterialResourceInfo> {

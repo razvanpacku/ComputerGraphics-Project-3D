@@ -9,6 +9,7 @@
 
 //forward declaration
 class ShaderManager;
+struct GLStateCache;
 
 struct Shader : public IResource {
     GLuint program = 0;
@@ -58,6 +59,8 @@ private:
 struct ShaderResourceInfo {
     std::string vertexPath;
     std::string fragmentPath;
+
+	std::string geometryPath; // optional
 };
 
 class ShaderPolicy : public IResourcePolicy<Shader, ShaderResourceInfo> {
@@ -72,7 +75,7 @@ public:
 private:
     std::string LoadFile(const std::string& path);
     GLuint Compile(GLenum type, const std::string& src);
-    GLuint LinkProgram(GLuint vs, GLuint fs);
+	GLuint LinkProgram(GLuint vs, GLuint fs, GLuint gs = 0);
 
 	// Reflection helpers
 	static void ReflectUniforms(GLuint program, ShaderReflection& out);
@@ -91,9 +94,9 @@ public:
     ShaderManager();
 
 	// Activate the shader
-    void UseShader(const ShaderHandle& h);
+    void UseShader(const ShaderHandle& h, GLStateCache* glState = nullptr);
 	void UseShader(const Shader& shader);
-	void UseShader(const std::string& name);
+	void UseShader(const std::string& name, GLStateCache* glState = nullptr);
 
 	virtual void PreloadResources(const std::string& resourceDirectory) override;
 

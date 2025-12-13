@@ -3,7 +3,6 @@
 #include "Culling/Frustum.h"
 
 #include <vector>
-#include <queue>
 
 // =================================================
 // RenderQueue
@@ -20,15 +19,19 @@ public:
 	void Push(const std::vector<Renderable>& renderables);
 
 	// Get a sorted list of submissions for a specific layer, called by the Renderer
-	std::vector<RenderSubmission>& GetSortedLayer(RenderLayer layer) const;
+	std::vector<RenderSubmission>& GetSortedLayer(RenderLayer layer);
+
+	std::vector<RenderSubmission>& GetShadowCasters();
 
 	size_t TotalSize() const;
 
 	void SetViewFrustum(const Frustum& frustum) { viewFrustum = frustum; }
 private:
-	std::priority_queue<RenderSubmission> opaque;
-	std::priority_queue<RenderSubmission> transparent;
-	std::priority_queue<RenderSubmission> gui;
+	std::vector<RenderSubmission> opaque;
+	std::vector<RenderSubmission> transparent;
+	std::vector<RenderSubmission> gui;
+	
+	std::vector<RenderSubmission> shadowCasters;
 
 	uint64_t nextSubmitIndex = 1;
 

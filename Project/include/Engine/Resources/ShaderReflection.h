@@ -111,6 +111,22 @@ struct UniformValue {
         memcpy(data.data(), arr, size);
 		dirty = true;
     }
+
+    template<typename T>
+    T Get(size_t index = 0) const {
+		size_t size = GLTypeSize(type);
+        index = glm::clamp(index, size_t(0), elementCount - 1);
+        T value;
+        memcpy(&value, data.data() + index * size, size);
+		return value;
+    }
+	template <typename T>
+    std::vector<T> GetArray() const {
+        size_t size = GLTypeSize(type);
+        std::vector<T> arr(elementCount);
+        memcpy(arr.data(), data.data(), size * elementCount);
+        return arr;
+	}
 };
 
 template<typename T>

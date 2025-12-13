@@ -4,6 +4,7 @@
             "name": "asteroidMat",
             "shader": "example",
             "uniforms": {
+                "receiveShadows": 1
             },
             "textures": {
                 "albedo": "asteroid.png"
@@ -15,7 +16,8 @@
                     "metalicity": 0.2,
                     "overrideMetalness": 1
                 }
-            }
+            },
+            "castShadows": true
         }
     ],
     "meshMaterialMap": {

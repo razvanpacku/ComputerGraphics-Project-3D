@@ -26,7 +26,7 @@ void Mesh::EnableInstancing(bool vaoAlreadyBound)
     glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW);
     // Set attribute pointers for matrix (4 vec4)
 
-	GLuint attributeIndexStart = attributes.size();
+	GLuint attributeIndexStart = 12; // starting attribute index for instance matrix
     for (GLuint i = 0; i < 4; i++) {
         GLuint attribIndex = attributeIndexStart + i;
 

@@ -2,6 +2,7 @@
     "name": "plastic",
     "shader": "example",
     "uniforms": {
+        "receiveShadows": 1
     },
     "textures": {
         "albedo": "dev.png"
@@ -13,5 +14,6 @@
             "metalicity": 0.0,
             "overrideMetalness": 1
         }
-    }
+    },
+    "castShadows": true
 }

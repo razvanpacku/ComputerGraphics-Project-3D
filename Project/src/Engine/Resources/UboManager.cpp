@@ -48,7 +48,7 @@ void UboPolicy::Destroy(Ubo& res)
 // UboManager
 // ==========================================================
 const std::vector<std::string> UboManager::globalUboNames = {
-	"Matrices",
+	"Shadow",
 	"Lighting",
 	"Camera",
 	"Time"
