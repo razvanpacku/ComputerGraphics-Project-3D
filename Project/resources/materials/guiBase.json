@@ -1,0 +1,13 @@
+{
+    "name": "guiBase",
+    "shader": "gui",
+    "uniforms": {
+        "hasBackground": 0,
+        "backColor": [0, 0, 0, 1]
+    },
+    "textures": {
+        "tex": "dev3.png"
+    },
+    "ubos": {
+    }
+}

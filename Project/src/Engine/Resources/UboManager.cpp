@@ -51,6 +51,7 @@ const std::vector<std::string> UboManager::globalUboNames = {
 	"Shadow",
 	"Lighting",
 	"Camera",
+	"GUICamera",
 	"Time"
 };
 

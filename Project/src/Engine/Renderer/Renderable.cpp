@@ -30,7 +30,14 @@ Renderable::Renderable(const Renderable& other) noexcept :
 	castShadows(other.castShadows),
 	receiveShadows(other.receiveShadows),
 	cullBackfaces(other.cullBackfaces),
-	instanceData(other.instanceData)
+	instanceData(other.instanceData),
+	layer(other.layer),
+	zOrder(other.zOrder),
+	textureHandle(other.textureHandle),
+	uvRect(other.uvRect),
+	relativePosition(other.relativePosition),
+	relativeSize(other.relativeSize),
+	anchorPoint(other.anchorPoint)
 {
 	// Note: shallow copy of mesh and instanceData pointers
 }
@@ -46,7 +53,14 @@ Renderable::Renderable(Renderable&& other) noexcept :
 	castShadows(other.castShadows),
 	receiveShadows(other.receiveShadows),
 	cullBackfaces(other.cullBackfaces),
-	instanceData(other.instanceData)
+	instanceData(other.instanceData),
+	layer(other.layer),
+	zOrder(other.zOrder),
+	textureHandle(other.textureHandle),
+	uvRect(other.uvRect),
+	relativePosition(other.relativePosition),
+	relativeSize(other.relativeSize),
+	anchorPoint(other.anchorPoint)
 {
 	other.mesh = nullptr;
 	other.instanceData = nullptr;
@@ -71,10 +85,25 @@ uint64_t Renderable::GetSortKey() const
 	flags |= cullBackfaces;
 
 	uint64_t key = 0;
-	key |= (uint64_t(shaderId) << 48);
-	key |= (uint64_t(materialId) << 32);
-	key |= (uint64_t(meshId) << 8);
-	key |= uint64_t(flags);
+	if (layer != RenderLayer::GUI) {
+		key |= (uint64_t(shaderId) << 48);
+		key |= (uint64_t(materialId) << 32);
+		key |= (uint64_t(meshId) << 8);
+		key |= uint64_t(flags);
+	}
+	else {
+
+		uint64_t zNormalized = static_cast<uint16_t>(zOrder) ^ 0x8000u;
+
+		uint32_t textureId = textureHandle.id & 0x0FFF;
+
+		key |= (zNormalized << 48);
+		key |= (uint64_t(shaderId & 0xFFFF) << 32);
+		key |= (uint64_t(materialId & 0xFFFF) << 16);
+		key |= (uint64_t(textureId & 0x0FFF) << 4);
+		key |= (uint64_t(flags & 0xF));
+		// all GUI share the same mesh (a quad)
+	}
 	return key;
 }
 

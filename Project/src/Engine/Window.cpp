@@ -37,6 +37,9 @@ Window::Window(uint16_t width, uint16_t height, const std::string& name, int32_t
 
 	ratio = static_cast<float>(width) / static_cast<float>(height);
 
+	framebufferHeight = height;
+	framebufferWidth = width;
+
 	glfwMakeContextCurrent(window);
 
 	glfwSetWindowUserPointer(window, &app);
@@ -147,6 +150,8 @@ void Window::FramebufferSizeCallback(GLFWwindow* window, int width, int height)
 		win.width = static_cast<uint16_t>(width);
 		win.ratio = static_cast<float>(width) / static_cast<float>(height);
 	}
+	win.framebufferHeight = static_cast<uint16_t>(height);
+	win.framebufferWidth = static_cast<uint16_t>(width);
 
 	AppAttorney::GetRenderer(app).Render();
 	win.SwapBuffers();

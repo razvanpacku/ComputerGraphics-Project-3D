@@ -24,18 +24,32 @@ void Mesh::EnableInstancing(bool vaoAlreadyBound)
     glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
     // Allocate buffer
     glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW);
-    // Set attribute pointers for matrix (4 vec4)
 
 	GLuint attributeIndexStart = 12; // starting attribute index for instance matrix
+	const GLsizei stride = sizeof(glm::mat4) + (isGuiMesh ? sizeof(glm::vec4) : 0);
+	uintptr_t offset = 0;
+
+    if(isGuiMesh) {
+        // UV offset attribute
+        GLuint uvAttribIndex = attributeIndexStart-1;
+        glEnableVertexAttribArray(uvAttribIndex);
+        glVertexAttribPointer(uvAttribIndex, 4, GL_FLOAT, GL_FALSE,
+            stride,
+            0);
+        glVertexAttribDivisor(uvAttribIndex, 1); // advance per instance
+        offset += sizeof(glm::vec4);;
+	}
+
     for (GLuint i = 0; i < 4; i++) {
         GLuint attribIndex = attributeIndexStart + i;
 
         glEnableVertexAttribArray(attribIndex);
         glVertexAttribPointer(attribIndex, 4, GL_FLOAT, GL_FALSE,
-            sizeof(glm::mat4),
-            reinterpret_cast<const void*>(sizeof(glm::vec4) * i));
+            stride,
+            reinterpret_cast<const void*>(offset + sizeof(glm::vec4) * i));
         glVertexAttribDivisor(attribIndex, 1); // advance per instance
     }
+
     if (!vaoAlreadyBound) glBindVertexArray(0);
 }
 
@@ -43,10 +57,47 @@ void Mesh::UploadInstancedData(const void* data, size_t count)
 {
     if (instanceVBO == 0) return; // instancing not enabled
     glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+    // upload only the matrix data, GUI meshes have uv offsets at the beginning
+    if (!isGuiMesh) {
+        glBufferData(GL_ARRAY_BUFFER,
+            sizeof(glm::mat4) * count,
+            data,
+            GL_DYNAMIC_DRAW);
+    }
+    else {
+		//alocate size for uv offsets + matrices
+        glBufferData(GL_ARRAY_BUFFER,
+            (sizeof(glm::vec4) + sizeof(glm::mat4)) * count,
+            nullptr,
+			GL_DYNAMIC_DRAW);
+
+        glBufferSubData(GL_ARRAY_BUFFER,
+            sizeof(glm::vec4) * count,
+            sizeof(glm::mat4) * count,
+			data);
+    }
+}
+
+void Mesh::UploadInstanceDataGUI(const void* modelMatrices, const void* uvOffsets, size_t count)
+{
+    if (instanceVBO == 0) return; // instancing not enabled
+	if (!isGuiMesh) return; // not a GUI mesh
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+    // alocate size for uv offsets + matrices
     glBufferData(GL_ARRAY_BUFFER,
-        sizeof(glm::mat4) * count,
-        data,
+        (sizeof(glm::vec4) + sizeof(glm::mat4)) * count,
+        nullptr,
         GL_DYNAMIC_DRAW);
+    // upload uv offsets
+    glBufferSubData(GL_ARRAY_BUFFER,
+        0,
+        sizeof(glm::vec4) * count,
+        uvOffsets);
+    // upload model matrices
+    glBufferSubData(GL_ARRAY_BUFFER,
+        sizeof(glm::vec4) * count,
+        sizeof(glm::mat4) * count,
+        modelMatrices);
 }
 
 // ==========================================

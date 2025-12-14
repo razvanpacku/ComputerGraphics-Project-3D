@@ -17,6 +17,10 @@ void ResourceManager::PreloadResources(const std::string& resourceDirectory) {
 	auto primitiveMeshes = MeshFactory::ObtainPrimitiveMeshes();
 	for (const auto& [name, mesh] : primitiveMeshes) {
 		std::cout << "  Loading primitive mesh: " << name << "\n";
+		if (name == "primitive/quad") {
+			Mesh& quadMesh = const_cast<Mesh&>(mesh);
+			quadMesh.isGuiMesh = true;
+		}
 		meshes.Register(name, const_cast<Mesh&>(mesh));
 	}
 

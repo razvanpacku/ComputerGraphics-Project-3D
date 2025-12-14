@@ -10,4 +10,5 @@
 // Commonly used constants/macros
 // ===========================================================
 
-#define INSTANCE_LAYOUT 12
+#define INSTANCE_UV_OFFSET 11
+#define INSTANCE_MODEL_MATRIX 12

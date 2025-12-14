@@ -8,5 +8,7 @@ struct Transform
 	glm::quat rotation = glm::quat({ 0.f, 0.f, 0.f });
 	glm::vec3 scale{1.0f, 1.0f, 1.0f};
 	glm::mat4 GetModelMatrix() const;
+
+	glm::mat4 GetGUIModelMatrix(glm::vec2 relativePosition, glm::vec2 relativeSize, glm::vec2 anchor, float screenWidth, float screenHeight) const;
 };
 

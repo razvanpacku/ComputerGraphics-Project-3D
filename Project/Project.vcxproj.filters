@@ -428,6 +428,7 @@
     <ClInclude Include="include\Engine\Resources\MeshFactory.h" />
     <ClInclude Include="include\Engine\Renderer\RenderableProvider\MeshRenderableProvider.h" />
     <ClInclude Include="include\Engine\Renderer\ShadowFramebuffer.h" />
+    <ClInclude Include="include\Engine\Renderer\RenderableProvider\GUIRenderableProvider.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="include\external\assimp\color4.inl" />

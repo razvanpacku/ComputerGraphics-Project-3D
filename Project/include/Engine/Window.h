@@ -22,8 +22,8 @@ public:
 
 	GLFWwindow* GetNative() const { return window; }
 	MouseMode GetMouseMode() const;
-	uint16_t GetWidth() const { return width; }
-	uint16_t GetHeight() const { return height; }
+	uint16_t GetWidth() const { return framebufferWidth; }
+	uint16_t GetHeight() const { return framebufferHeight; }
 	uint16_t GetMonitorWidth() const { return videoMode->width; }
 	uint16_t GetMonitorHeight() const { return videoMode->height; }
 	float GetAspectRatio() const { return ratio; }
@@ -43,6 +43,8 @@ private:
 
 	uint16_t width, height;
 	uint16_t windowPosX, windowPosY;
+
+	uint16_t framebufferWidth = 0, framebufferHeight = 0;
 
 	float ratio = 1.0f;
 

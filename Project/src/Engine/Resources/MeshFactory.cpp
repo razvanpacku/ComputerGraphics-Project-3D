@@ -96,8 +96,8 @@ namespace MeshFactory {
 				float yf = (static_cast<float>(y) / resolution - 0.5f) * size;
 				Vertex vert;
 				vert.position = glm::vec4(xf, yf , 0.0f, 1.0f);
-				vert.uv = glm::vec2(static_cast<float>(resolution - x) / resolution, static_cast<float>(y) / resolution);
-				vert.normal = glm::vec3(0.0f, 0.0f, -1.0f);
+				vert.uv = glm::vec2(static_cast<float>(x) / resolution, static_cast<float>(y) / resolution);
+				vert.normal = glm::vec3(0.0f, 0.0f, 1.0f);
 				vertices.push_back(vert);
 				
 				// if double sided, add back face vertex with the same position and uv but inverted normal
@@ -115,11 +115,11 @@ namespace MeshFactory {
 					uint32_t bottomLeft = (y + 1) * (resolution + 1) + x;
 					uint32_t bottomRight = bottomLeft + 1;
 					indices.push_back(topLeft);
-					indices.push_back(bottomLeft);
-					indices.push_back(topRight);
 					indices.push_back(topRight);
 					indices.push_back(bottomLeft);
+					indices.push_back(topRight);
 					indices.push_back(bottomRight);
+					indices.push_back(bottomLeft);
 				}
 				else {
 					uint32_t topLeftFront = (y * (resolution + 1) + x) * 2;
@@ -128,22 +128,22 @@ namespace MeshFactory {
 					uint32_t bottomRightFront = bottomLeftFront + 2;
 					// front face
 					indices.push_back(topLeftFront);
-					indices.push_back(bottomLeftFront);
-					indices.push_back(topRightFront);
 					indices.push_back(topRightFront);
 					indices.push_back(bottomLeftFront);
+					indices.push_back(topRightFront);
 					indices.push_back(bottomRightFront);
+					indices.push_back(bottomLeftFront);
 					// back face
 					uint32_t topLeftBack = topLeftFront + 1;
 					uint32_t topRightBack = topRightFront + 1;
 					uint32_t bottomLeftBack = bottomLeftFront + 1;
 					uint32_t bottomRightBack = bottomRightFront + 1;
 					indices.push_back(topRightBack);
-					indices.push_back(bottomLeftBack);
 					indices.push_back(topLeftBack);
-					indices.push_back(bottomRightBack);
 					indices.push_back(bottomLeftBack);
+					indices.push_back(bottomRightBack);
 					indices.push_back(topRightBack);
+					indices.push_back(bottomLeftBack);
 				}
 			}
 		}

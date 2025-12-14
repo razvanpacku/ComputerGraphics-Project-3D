@@ -125,3 +125,8 @@ struct STD140 CameraUBO
 	glm::aligned_mat4 view;
 	glm::aligned_mat4 projection;
 };
+
+struct STD140 GUICameraUBO
+{
+    glm::aligned_mat4 view;
+};

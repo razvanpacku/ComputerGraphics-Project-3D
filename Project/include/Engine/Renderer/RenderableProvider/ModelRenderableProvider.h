@@ -9,6 +9,9 @@ public:
 	Model* model = nullptr;
 	Transform transform;
 
+	bool isTransparent = false;
+	glm::vec3 cameraPosition = glm::vec3(0.0f);
+
 	void GenerateRenderables(std::vector<Renderable>& out) override
 	{
 		if (!model) return;
@@ -36,6 +39,15 @@ public:
 					auto val = material->GetUniform<int>("receiveShadows");
 					renderable.receiveShadows = val.value_or(false);
 				}
+			}
+
+			if(isTransparent)
+			{
+				// calculate distance from camera for sorting
+				glm::vec3 renderablePos = renderable.transform.position;
+				float distance = glm::length(cameraPosition - renderablePos);
+				renderable.sortDistance = distance;
+				renderable.layer = RenderLayer::Transparent;
 			}
 
 			out.push_back(renderable);

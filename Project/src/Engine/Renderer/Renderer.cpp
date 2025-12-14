@@ -13,7 +13,8 @@
 #include "Engine/Resources/UboDefs.h"
 
 #include "Engine/Renderer/RenderableProvider//ModelRenderableProvider.h"
-#include "Engine/Renderer/RenderableProvider//MeshRenderableProvider.h"
+#include "Engine/Renderer/RenderableProvider/MeshRenderableProvider.h"
+#include "Engine/Renderer/RenderableProvider/GUIRenderableProvider.h"
 #include "Engine/Renderer/BatchBuilder.h"
 #include "Engine/Renderer/Culling/Frustum.h"
 
@@ -87,6 +88,12 @@ glm::mat4 GetPerspectiveMatrix() {
 
 glm::mat4 GetViewMatrix() {
 	return glm::lookAt(cameraPos, cameraPos + front, up);
+}
+
+glm::mat4 GetGUIViewMatrix() {
+	auto& win = AppAttorney::GetWindow(App::Get());
+	//return glm::ortho(0.f, static_cast<float>(win.GetWidth()), 0.f, static_cast<float>(win.GetHeight()), -1.f, 1.f);
+	return glm::ortho(0.f, 1.f, 0.f, 1.f, -1.f, 1.f);
 }
 
 // light related functions
@@ -336,10 +343,25 @@ void Renderer::Initialize(void)
 		meshProvider.materialHandle = _rm.materials.GetHandle("matte");
 		meshProvider.transform = {
 			glm::vec3(-20.0f, 0.0f, 0.0f),
-			glm::quat(glm::vec3(0.0f, glm::radians(-90.0f), 0.0f)),
+			glm::quat(glm::vec3(0.0f, glm::radians(90.0f), 0.0f)),
 			glm::vec3(100.0f, 100.0f, 1.0f)
 		};
 		meshProvider.GenerateRenderables(tempRenderables);
+	}
+
+	{
+		GUIRederableProvider guiProvider;
+		guiProvider.materialHandle = _rm.materials.GetHandle("guiBase");
+		//guiProvider.textureHandle = _rm.textures.GetHandle("texture/gui/logo");
+		guiProvider.transform = {
+			glm::vec3(0.0f, 0.0f, 0.0f),
+			glm::quat(glm::vec3(0.0f, 0.0f, 0.0f)),
+			glm::vec3(100.f, 100.f, 1.0f)
+		};
+		guiProvider.relativeSize = glm::vec4(0.0f);
+		guiProvider.relativePosition = glm::vec2(0.0f, 1.0f);
+		guiProvider.anchorPoint = glm::vec2(0.0f, 1.0f);
+		guiProvider.GenerateRenderables(tempRenderables);
 	}
 }
 void Renderer::RenderFunction(void)
@@ -355,6 +377,12 @@ void Renderer::RenderFunction(void)
 		projection
 		});
 	cameraWriter->Upload();
+	glm::mat4 guiView = GetGUIViewMatrix();
+	auto* guiCameraWriter = _rm.ubos.GetUboWriter("GUICamera");
+	guiCameraWriter->SetBlock(GUICameraUBO{
+		guiView
+		});
+	guiCameraWriter->Upload();
 
 	Frustum frustrum(projection * view);
 	renderQueue.SetViewFrustum(frustrum);
@@ -588,8 +616,26 @@ void Renderer::RenderFrame() {
 
 void Renderer::DrawList(const std::vector<RenderSubmission>& submissions)
 {
-	for (const auto& submission : submissions) {
-		DrawSubmission(submission);
+	// all submissions should share the same layer
+	RenderLayer layer = submissions.empty() ? RenderLayer::Opaque : submissions[0].item.layer;
+
+	if (layer == RenderLayer::GUI) {
+		glDisable(GL_DEPTH_TEST);
+		glDepthMask(GL_FALSE);
+		glDisable(GL_CULL_FACE);
+
+		for (const auto& submission : submissions) {
+			DrawGUISubmission(submission);
+		}
+
+		glEnable(GL_DEPTH_TEST);
+		glDepthMask(GL_TRUE);
+		glEnable(GL_CULL_FACE);
+	}
+	else {
+		for (const auto& submission : submissions) {
+			DrawSubmission(submission);
+		}
 	}
 }
 
@@ -630,7 +676,7 @@ void Renderer::DrawSubmission(const RenderSubmission& submission)
 		{
 			mesh->EnableInstancing(true);
 		}
-		mesh->UploadInstancedData(submission.item.instanceData->modelMatrices.data(), submission.item.instanceData->count);
+		mesh->UploadInstancedData(dynamic_cast<InstanceData*>(submission.item.instanceData)->modelMatrices.data(), submission.item.instanceData->count);
 		glDrawElementsInstanced(primitive, mesh->indexCount, GL_UNSIGNED_INT, 0, submission.item.instanceData->count);
 	}
 	else {
@@ -664,7 +710,51 @@ void Renderer::DrawShadowSubmission(const RenderSubmission& submission)
 		{
 			mesh->EnableInstancing(true);
 		}
-		mesh->UploadInstancedData(submission.item.instanceData->modelMatrices.data(), submission.item.instanceData->count);
+		mesh->UploadInstancedData(dynamic_cast<InstanceData*>(submission.item.instanceData)->modelMatrices.data(), submission.item.instanceData->count);
+		glDrawElementsInstanced(primitive, mesh->indexCount, GL_UNSIGNED_INT, 0, submission.item.instanceData->count);
+	}
+	else {
+		glDrawElements(primitive, mesh->indexCount, GL_UNSIGNED_INT, 0);
+	}
+}
+
+void Renderer::DrawGUISubmission(const RenderSubmission& submission)
+{
+	Mesh* mesh = nullptr;
+	if (!submission.item.meshHandle.IsValid()) {
+		mesh = _rm.meshes.Get("primitive/quad");
+	}
+	else {
+		mesh = _rm.meshes.Get(submission.item.meshHandle);
+	}
+	if (!mesh) return;
+	auto* material = _rm.materials.Get(submission.item.materialHandle);
+	if (!material) return;
+
+	//override texture if a textureHandle is provided
+	if (submission.item.textureHandle.IsValid()) {
+		material->SetTexture("tex", submission.item.textureHandle);
+	}
+
+	material->Apply(&glState);
+
+	if ((submission.item.meshHandle.IsValid() && glState.currentMesh != submission.item.meshHandle) ||
+		(glState.currentDynamicMesh != submission.item.mesh)) {
+		mesh->Bind();
+		glState.currentMesh = submission.item.meshHandle;
+		glState.currentDynamicMesh = submission.item.mesh;
+	}
+
+	GLenum primitive = submission.item.primitive != 0 ? submission.item.primitive : mesh->primitive;
+	if (submission.item.instanceData)
+	{
+		if (mesh->isInstancingEnabled() == false)
+		{
+			mesh->EnableInstancing(true);
+		}
+		mesh->UploadInstanceDataGUI(dynamic_cast<InstanceDataGUI*>(submission.item.instanceData)->modelMatrices.data(),
+			dynamic_cast<InstanceDataGUI*>(submission.item.instanceData)->uvOffsets.data(),
+			submission.item.instanceData->count);
 		glDrawElementsInstanced(primitive, mesh->indexCount, GL_UNSIGNED_INT, 0, submission.item.instanceData->count);
 	}
 	else {

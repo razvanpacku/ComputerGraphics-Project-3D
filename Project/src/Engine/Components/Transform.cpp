@@ -9,3 +9,27 @@ glm::mat4 Transform::GetModelMatrix() const {
 	glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), scale);
 	return translationMatrix * rotationMatrix * scaleMatrix;
 }
+
+glm::mat4 Transform::GetGUIModelMatrix(glm::vec2 relativePosition, glm::vec2 relativeSize, glm::vec2 anchor, float screenWidth, float screenHeight) const {
+	Transform t = *this;
+
+	// calculate position in screen space (apply relativePosition first, then the transform.position as pixel offset)
+    float posPxX = relativePosition.x * screenWidth + t.position.x;
+    float posPxY = relativePosition.y * screenHeight + t.position.y;
+
+    // same for scale
+    float sizePxX = relativeSize.x * screenWidth + t.scale.x;
+    float sizePxY = relativeSize.y * screenHeight + t.scale.y;
+
+    posPxX -= (anchor.x - 0.5f) * sizePxX;
+    posPxY -= (anchor.y - 0.5f) * sizePxY;
+
+    t.position.x = posPxX / screenWidth;
+    t.position.y = posPxY / screenHeight;
+
+    t.scale.x = sizePxX / screenWidth;
+    t.scale.y = sizePxY / screenHeight;
+
+
+	return t.GetModelMatrix();
+}

@@ -36,10 +36,13 @@ struct Mesh : IResource {
 	BoundingBox boundingBox;
 	bool cullBackfaces = true;
 
+	bool isGuiMesh = false; // if true, instance data includes uv offsets
+
 	void Bind() const;
 
 	void EnableInstancing(bool vaoAlreadyBound);
 	void UploadInstancedData(const void* data, size_t count);
+	void UploadInstanceDataGUI(const void* modelMatrices, const void* uvOffsets, size_t count);
 	bool isInstancingEnabled() const { return instanceVBO != 0; }
 
 private:
@@ -56,6 +59,7 @@ struct MeshResoruceInfo {
 
 	BoundingBox boundingBox;
 	bool cullBackfaces = true;
+	bool isGuiMesh = false;
 };
 
 class MeshPolicy : public IResourcePolicy<Mesh, MeshResoruceInfo> {

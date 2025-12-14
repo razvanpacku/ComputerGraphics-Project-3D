@@ -35,6 +35,7 @@ private:
 	void DrawList(const std::vector<RenderSubmission>& submissions);
 	void DrawSubmission(const RenderSubmission& submission);
 	void DrawShadowSubmission(const RenderSubmission& submission);
+	void DrawGUISubmission(const RenderSubmission& submission);
 	
 	App& app;
 	ResourceManager& _rm;

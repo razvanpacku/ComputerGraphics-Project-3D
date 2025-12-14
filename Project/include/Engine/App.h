@@ -6,6 +6,7 @@
 class InputManager;
 class Window;
 class Renderer;
+class BatchBuilder;
 
 #define WINDOW_WIDTH 1000
 #define WINDOW_HEIGHT 1000
@@ -52,5 +53,6 @@ class AppAttorney {
 	friend class Window;
 	friend class Renderer;
 	friend class InputManager;
+	friend class BatchBuilder;
 };
 

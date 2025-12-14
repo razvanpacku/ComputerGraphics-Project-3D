@@ -28,12 +28,19 @@ enum class RenderLayer : uint8_t
 // ===================================================
 struct InstanceDataBase
 {
+	virtual ~InstanceDataBase() = default;
 	uint32_t count = 0;
 };
 
 struct InstanceData : public InstanceDataBase
 {
 	std::vector<glm::mat4> modelMatrices;
+};
+
+struct InstanceDataGUI : public InstanceDataBase
+{
+	std::vector<glm::mat4> modelMatrices;
+	std::vector <glm::vec4> uvOffsets; // x, y, width, height in uv space
 };
 
 // ===================================================
@@ -61,15 +68,21 @@ struct Renderable
 	bool castShadows = false;
 	bool receiveShadows = false;
 
-	InstanceData* instanceData = nullptr; // optional instance data for instanced rendering
+	InstanceDataBase* instanceData = nullptr; // optional instance data for instanced rendering
 
 	RenderLayer layer = RenderLayer::Opaque;
 
 	// sorting distance (filled at submission time)
 	float sortDistance = 0.0f;
 
-	// user defined order index (optional)
-	uint32_t userOrder = 0;
+	// gui related data
+	int16_t zOrder = 0;
+	TextureManager::Handle textureHandle;
+	glm::vec4 uvRect = glm::vec4(0.f, 0.f, 1.f, 1.f); // x, y, width, height in uv space
+	glm::vec2 relativePosition = { 0.5f, 0.5f };
+	glm::vec2 relativeSize = { 1.f, 1.f };
+	glm::vec2 anchorPoint = { 0.5f, 0.5f };
+	
 
 	Renderable() = default;
 	~Renderable();
@@ -95,5 +108,6 @@ struct RenderSubmission
 	// comparator for sorting
 	std::strong_ordering operator<=>(const RenderSubmission& other) const noexcept;
 };
+
 
 
