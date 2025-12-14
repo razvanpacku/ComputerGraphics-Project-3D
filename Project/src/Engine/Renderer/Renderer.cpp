@@ -356,7 +356,7 @@ void Renderer::Initialize(void)
 		guiProvider.transform = {
 			glm::vec3(0.0f, 0.0f, 0.0f),
 			glm::quat(glm::vec3(0.0f, 0.0f, 0.0f)),
-			glm::vec3(100.f, 100.f, 1.0f)
+			glm::vec3(64.f, 64.f, 1.0f)
 		};
 		guiProvider.relativeSize = glm::vec4(0.0f);
 		guiProvider.relativePosition = glm::vec2(0.0f, 1.0f);

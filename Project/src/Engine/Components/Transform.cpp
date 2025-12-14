@@ -12,6 +12,7 @@ glm::mat4 Transform::GetModelMatrix() const {
 
 glm::mat4 Transform::GetGUIModelMatrix(glm::vec2 relativePosition, glm::vec2 relativeSize, glm::vec2 anchor, float screenWidth, float screenHeight) const {
 	Transform t = *this;
+	anchor -= glm::vec2(0.5f, 0.5f); // adjust anchor to be centered around (0,0)
 
 	// calculate position in screen space (apply relativePosition first, then the transform.position as pixel offset)
     float posPxX = relativePosition.x * screenWidth + t.position.x;
@@ -21,8 +22,8 @@ glm::mat4 Transform::GetGUIModelMatrix(glm::vec2 relativePosition, glm::vec2 rel
     float sizePxX = relativeSize.x * screenWidth + t.scale.x;
     float sizePxY = relativeSize.y * screenHeight + t.scale.y;
 
-    posPxX -= (anchor.x - 0.5f) * sizePxX;
-    posPxY -= (anchor.y - 0.5f) * sizePxY;
+    posPxX -= (anchor.x) * sizePxX;
+    posPxY -= (anchor.y) * sizePxY;
 
     t.position.x = posPxX / screenWidth;
     t.position.y = posPxY / screenHeight;
@@ -31,5 +32,12 @@ glm::mat4 Transform::GetGUIModelMatrix(glm::vec2 relativePosition, glm::vec2 rel
     t.scale.y = sizePxY / screenHeight;
 
 
-	return t.GetModelMatrix();
+	//return t.GetModelMatrix();
+    glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), t.position);
+	// make rotation be centered in the anchor point
+    glm::mat4 rotationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(anchor.x * t.scale.x, anchor.y * t.scale.y, 0.0f)) *
+                               glm::toMat4(t.rotation) *
+		                       glm::translate(glm::mat4(1.0f), glm::vec3(-anchor.x * t.scale.x, -anchor.y * t.scale.y, 0.0f));
+	glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), t.scale);
+	return translationMatrix * rotationMatrix * scaleMatrix;
 }
