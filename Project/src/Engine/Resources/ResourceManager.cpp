@@ -28,4 +28,6 @@ void ResourceManager::PreloadResources(const std::string& resourceDirectory) {
 	materials.PreloadResources(resourceDirectory);
 	std::cout << "Loading models:" << std::endl;
 	models.PreloadResources(resourceDirectory);
+
+	preloaded = true;
 }

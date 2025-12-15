@@ -37,10 +37,14 @@ struct InstanceData : public InstanceDataBase
 	std::vector<glm::mat4> modelMatrices;
 };
 
+struct GUIData {
+	glm::vec4 uvOffset; // x, y, width, height in uv space
+	glm::mat4 modelMatrix;
+};
+
 struct InstanceDataGUI : public InstanceDataBase
 {
-	std::vector<glm::mat4> modelMatrices;
-	std::vector <glm::vec4> uvOffsets; // x, y, width, height in uv space
+	std::vector<GUIData> guiData;
 };
 
 // ===================================================

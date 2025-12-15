@@ -6,6 +6,7 @@
 
 //forward declaration
 class MeshManager;
+struct InstanceDataGUI;
 
 struct VertexAttribute {
 	GLuint index;			// attribute loctation in shader
@@ -42,7 +43,7 @@ struct Mesh : IResource {
 
 	void EnableInstancing(bool vaoAlreadyBound);
 	void UploadInstancedData(const void* data, size_t count);
-	void UploadInstanceDataGUI(const void* modelMatrices, const void* uvOffsets, size_t count);
+	void UploadInstanceDataGUI(const InstanceDataGUI* data);
 	bool isInstancingEnabled() const { return instanceVBO != 0; }
 
 private:

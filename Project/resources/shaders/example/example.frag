@@ -50,6 +50,10 @@ struct CascadeInfo {
 
 const float CASCADE_BLEND_RANGE = 0.05;
 
+const vec3 fogColor = vec3(0.5, 0.5, 0.5);
+const bool useFog = false;
+const float fogExponent = 0.2;
+
 CascadeInfo SelectCascadeBlended(vec3 fragPosWorld)
 {
     float viewDepth = - (view * vec4(fragPosWorld, 1.0)).z;
@@ -243,6 +247,14 @@ void main(void){
 	vec3 diffuseComponent = diffuse * surfaceColor * (1.0 - realMetalicity);
 	vec3 specularComponent = specular * mix(vec3(1.0f), surfaceColor, realMetalicity);
 	vec4 result = vec4(ambient, 1.0f) * TexColor + vec4(attenuation * (diffuseComponent + specularComponent) * (1.0 - shadow), 1.0f);
+
+    if(useFog) {
+        float dist = length(viewPos - fragPos);
+        // exponential fog
+        float fogFactor = exp(-fogExponent * dist);
+        fogFactor = clamp(fogFactor, 0.0, 1.0);
+        result.rgb = mix(fogColor, result.rgb, fogFactor);
+    }
 
 	out_Color = result;
 }

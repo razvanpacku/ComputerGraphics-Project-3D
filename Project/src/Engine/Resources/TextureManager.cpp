@@ -420,6 +420,12 @@ void TextureManager::PreloadResources(const std::string& resourceDirectory)
             std::cout << "Loading texture: " << relativePath << "\n";
             tri.path = fullPath;
             tri.generateMipmaps = true;
+            if (relativePath == "font.png") {
+				tri.generateMipmaps = false;
+				Load(relativePath, tri);
+				tri.generateMipmaps = true;
+                continue;
+            }
 			Load(relativePath, tri);
         }
 	}

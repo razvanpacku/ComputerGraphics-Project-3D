@@ -1,6 +1,7 @@
 #include "Engine/Resources/MeshManager.h"
 
 #include <glm/glm.hpp>
+#include "Engine/Renderer/Renderable.h"
 
 // ==========================================
 // Mesh
@@ -78,26 +79,15 @@ void Mesh::UploadInstancedData(const void* data, size_t count)
     }
 }
 
-void Mesh::UploadInstanceDataGUI(const void* modelMatrices, const void* uvOffsets, size_t count)
+void Mesh::UploadInstanceDataGUI(const InstanceDataGUI* data)
 {
-    if (instanceVBO == 0) return; // instancing not enabled
-	if (!isGuiMesh) return; // not a GUI mesh
+    if (instanceVBO == 0 || !isGuiMesh) return;
+
     glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-    // alocate size for uv offsets + matrices
     glBufferData(GL_ARRAY_BUFFER,
-        (sizeof(glm::vec4) + sizeof(glm::mat4)) * count,
-        nullptr,
+        data->guiData.size() * sizeof(GUIData),
+        data->guiData.data(),
         GL_DYNAMIC_DRAW);
-    // upload uv offsets
-    glBufferSubData(GL_ARRAY_BUFFER,
-        0,
-        sizeof(glm::vec4) * count,
-        uvOffsets);
-    // upload model matrices
-    glBufferSubData(GL_ARRAY_BUFFER,
-        sizeof(glm::vec4) * count,
-        sizeof(glm::mat4) * count,
-        modelMatrices);
 }
 
 // ==========================================

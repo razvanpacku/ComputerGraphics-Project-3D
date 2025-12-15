@@ -55,6 +55,7 @@
     <ClInclude Include="include\Engine\Renderer\RenderableProvider\GUIRenderableProvider.h" />
     <ClInclude Include="include\Engine\Renderer\RenderableProvider\MeshRenderableProvider.h" />
     <ClInclude Include="include\Engine\Renderer\RenderableProvider\ModelRenderableProvider.h" />
+    <ClInclude Include="include\Engine\Renderer\RenderableProvider\TextRenderableProcider.h" />
     <ClInclude Include="include\Engine\Resources\Ubo.h" />
     <ClInclude Include="include\Engine\Resources\UboDefs.h" />
     <ClInclude Include="include\Engine\Resources\UniformSetter.h" />

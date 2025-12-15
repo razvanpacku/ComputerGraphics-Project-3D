@@ -64,6 +64,7 @@ ShaderReflection* Material::GetShaderReflection() const {
 
 void Material::SetTexture(const std::string& uniformName, TextureManager::Handle tex) {
 	textures[uniformName] = tex;
+	dirtyTextures[uniformName] = true;
 }
 
 void Material::SetTexture(const std::string& uniformName, const std::string& texName) {

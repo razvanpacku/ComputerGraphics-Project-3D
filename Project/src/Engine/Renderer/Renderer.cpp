@@ -15,6 +15,7 @@
 #include "Engine/Renderer/RenderableProvider//ModelRenderableProvider.h"
 #include "Engine/Renderer/RenderableProvider/MeshRenderableProvider.h"
 #include "Engine/Renderer/RenderableProvider/GUIRenderableProvider.h"
+#include "Engine/Renderer/RenderableProvider/TextRenderableProcider.h"
 #include "Engine/Renderer/BatchBuilder.h"
 #include "Engine/Renderer/Culling/Frustum.h"
 
@@ -24,6 +25,7 @@
 // temporary variables, functions and objects for testing
 std::vector<Renderable> tempRenderables;
 std::vector<Renderable> boundingBoxes;
+std::vector<Renderable> fpsText;
 bool showBoundingBoxes = false;
 #define ASTEROID_COUNT 1000
 #define INVERSE_LIGHT_INTENSITY 0.05f
@@ -348,21 +350,22 @@ void Renderer::Initialize(void)
 		};
 		meshProvider.GenerateRenderables(tempRenderables);
 	}
-
+	/*
 	{
 		GUIRederableProvider guiProvider;
 		guiProvider.materialHandle = _rm.materials.GetHandle("guiBase");
-		//guiProvider.textureHandle = _rm.textures.GetHandle("texture/gui/logo");
+		guiProvider.textureHandle = _rm.textures.GetHandle("dev2.png");
 		guiProvider.transform = {
 			glm::vec3(0.0f, 0.0f, 0.0f),
-			glm::quat(glm::vec3(0.0f, 0.0f, 0.0f)),
-			glm::vec3(64.f, 64.f, 1.0f)
+			glm::quat(glm::vec3(0.0f, 0.0f, glm::radians(45.f))),
+			glm::vec3(256.f, 256.f, 1.0f)
 		};
 		guiProvider.relativeSize = glm::vec4(0.0f);
 		guiProvider.relativePosition = glm::vec2(0.0f, 1.0f);
 		guiProvider.anchorPoint = glm::vec2(0.0f, 1.0f);
 		guiProvider.GenerateRenderables(tempRenderables);
 	}
+	*/
 }
 void Renderer::RenderFunction(void)
 {
@@ -407,6 +410,20 @@ void Renderer::RenderFunction(void)
 		glm::quat deltaQuat = glm::quat(glm::vec3(0.0f, glm::radians(-deltaAngle), 0.0f));
 		r.transform.rotation = deltaQuat * r.transform.rotation;
 		
+	}
+
+	{
+		fpsText.clear();
+		int fps = static_cast<int>(1.0f / App::Get().DeltaTime());
+		TextRenderableProvier textProvider;
+		std::string text = "FPS: " + std::to_string(fps);
+		textProvider.text = text;
+		textProvider.pixelScale = glm::vec2(128.f, 16.f);
+		textProvider.rotation = glm::quat(glm::vec3(0.f));
+		textProvider.anchorPoint = glm::vec2(0.5f, 1.0f);
+		textProvider.relativePosition = glm::vec2(0.5f, 1.0f);
+		textProvider.GenerateRenderables(fpsText);
+		renderQueue.Push(fpsText);
 	}
 
 	// in boundingBoxes generate bounding boxes using the bounding_box mesh for each renderable
@@ -752,9 +769,7 @@ void Renderer::DrawGUISubmission(const RenderSubmission& submission)
 		{
 			mesh->EnableInstancing(true);
 		}
-		mesh->UploadInstanceDataGUI(dynamic_cast<InstanceDataGUI*>(submission.item.instanceData)->modelMatrices.data(),
-			dynamic_cast<InstanceDataGUI*>(submission.item.instanceData)->uvOffsets.data(),
-			submission.item.instanceData->count);
+		mesh->UploadInstanceDataGUI(dynamic_cast<InstanceDataGUI*>(submission.item.instanceData));
 		glDrawElementsInstanced(primitive, mesh->indexCount, GL_UNSIGNED_INT, 0, submission.item.instanceData->count);
 	}
 	else {

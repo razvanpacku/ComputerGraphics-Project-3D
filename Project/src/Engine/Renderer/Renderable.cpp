@@ -95,7 +95,7 @@ uint64_t Renderable::GetSortKey() const
 
 		uint64_t zNormalized = static_cast<uint16_t>(zOrder) ^ 0x8000u;
 
-		uint32_t textureId = textureHandle.id & 0x0FFF;
+		uint32_t textureId = textureHandle.id;
 
 		key |= (zNormalized << 48);
 		key |= (uint64_t(shaderId & 0xFFFF) << 32);

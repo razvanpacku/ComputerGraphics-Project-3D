@@ -32,12 +32,18 @@ glm::mat4 Transform::GetGUIModelMatrix(glm::vec2 relativePosition, glm::vec2 rel
     t.scale.y = sizePxY / screenHeight;
 
 
-	//return t.GetModelMatrix();
     glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), t.position);
+
+    float aspect = screenWidth / screenHeight;
+
+    glm::mat4 aspectFix = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, aspect, 1.0f));
+    glm::mat4 invAspectFix = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f / aspect, 1.0f));
 	// make rotation be centered in the anchor point
-    glm::mat4 rotationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(anchor.x * t.scale.x, anchor.y * t.scale.y, 0.0f)) *
-                               glm::toMat4(t.rotation) *
-		                       glm::translate(glm::mat4(1.0f), glm::vec3(-anchor.x * t.scale.x, -anchor.y * t.scale.y, 0.0f));
+    glm::mat4 rotationMatrix =  glm::translate(glm::mat4(1.0f), glm::vec3(anchor.x * t.scale.x, anchor.y * t.scale.y, 0.0f)) *
+                                aspectFix * 
+                                glm::toMat4(t.rotation) *
+                                invAspectFix *
+		                        glm::translate(glm::mat4(1.0f), glm::vec3(-anchor.x * t.scale.x, -anchor.y * t.scale.y, 0.0f));
 	glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), t.scale);
 	return translationMatrix * rotationMatrix * scaleMatrix;
 }

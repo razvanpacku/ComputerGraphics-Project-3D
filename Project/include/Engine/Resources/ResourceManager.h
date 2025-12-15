@@ -12,6 +12,7 @@ public:
     static ResourceManager& Get();
 
 	void PreloadResources(const std::string& resourceDirectory);
+	bool AreResourcesPreloaded() const { return preloaded; }
 
     ShaderManager shaders;
 	TextureManager textures;
@@ -21,5 +22,7 @@ public:
 	ModelManager models;
 private:
     ResourceManager() = default;
+
+	bool preloaded = false;
 };
 
