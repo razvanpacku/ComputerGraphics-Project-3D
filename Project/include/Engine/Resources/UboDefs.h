@@ -106,6 +106,16 @@ struct STD140 LightingUBO
 	glm::fixed_vec3 attenuationFactor;
 };
 
+// A Light struct with default values, used by Renderer
+struct Light : public LightingUBO {
+    Light() {
+        lightPos = glm::aligned_vec4(0.0f);
+        lightColor = glm::fixed_vec3(1.0f, 1.0f, 1.0f);
+        ambientStrength = 0.1f;
+        attenuationFactor = glm::fixed_vec3(1.0f, 0.09f, 0.032f);
+    }
+};
+
 struct STD140 ShadowUBO
 {
 	glm::aligned_mat4 lightSpaceMatrix[6];

@@ -20,6 +20,10 @@ public:
 	double DeltaTime() const { return deltaTime; }
 
 	void Run();
+
+	uint16_t GetWindowWidth() const;
+	uint16_t GetWindowHeight() const;
+	float GetWindowAspectRatio() const;
 private:
 	App(const std::string& name, uint16_t width, uint16_t height);
 	~App();

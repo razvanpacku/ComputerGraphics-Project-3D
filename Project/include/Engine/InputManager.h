@@ -105,3 +105,13 @@ private:
     }
     friend class Window;
 };
+
+class ConnectionHolder {
+public:
+    std::vector<InputConnection> connections;
+    ~ ConnectionHolder() {
+        for (auto& conn : connections) {
+            conn.Unbind();
+        }
+	}
+};

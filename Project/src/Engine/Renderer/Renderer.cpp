@@ -3,14 +3,10 @@
 #include "Engine/App.h"
 #include "Engine/Window.h"
 #include "Engine/Resources/ResourceManager.h"
-
-//glm for transformations
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtc/type_aligned.hpp>
+#include "Engine/InputManager.h"
 
 #include "Engine/Resources/UboDefs.h"
+#include "Engine/Renderer/LightMath.h"
 
 #include "Engine/Renderer/RenderableProvider//ModelRenderableProvider.h"
 #include "Engine/Renderer/RenderableProvider/MeshRenderableProvider.h"
@@ -19,6 +15,9 @@
 #include "Engine/Renderer/BatchBuilder.h"
 #include "Engine/Renderer/Culling/Frustum.h"
 
+// temporary camera controller until entity system is done to fetch cameraController from camera entity
+#include "Engine/Controllers/FlyingCameraController.h"
+
 #include <iostream>
 #include <algorithm>
 
@@ -26,270 +25,22 @@
 std::vector<Renderable> tempRenderables;
 std::vector<Renderable> boundingBoxes;
 std::vector<Renderable> fpsText;
-bool showBoundingBoxes = false;
 #define ASTEROID_COUNT 1000
-#define INVERSE_LIGHT_INTENSITY 0.05f
-
-LightingUBO light = LightingUBO{
-		glm::aligned_vec4(1.0f, 1.0f, 1.0f, 0.0f),
-		glm::fixed_vec3(1.0f, 1.0f, 1.0f),
-		0.05f,
-		glm::fixed_vec3(1.0f, 0.09f * INVERSE_LIGHT_INTENSITY, 0.032f * INVERSE_LIGHT_INTENSITY)
-};
-
-//hardcoded camera related variables
-#include "Engine/InputManager.h"
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
-float cameraSpeed = 2.5f;
-float sensitivity = 0.1f;
-float yaw = 90.0f, pitch = 0.0f;
-float nearPlane = 0.1f, farPlane = 10000.0f;
-glm::vec3 front;
-glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
-glm::vec3 right;
-glm::vec3 up;
-
-enum Camera_Movement {
-	FORWARD,
-	BACKWARD,
-	LEFT,
-	RIGHT,
-	UP,
-	DOWN
-};
-
-void ProcessCameraMovement(Camera_Movement dir, float deltaTime) {
-	float velocity = cameraSpeed * deltaTime;
-	glm::vec3 direction(0.0f);
-
-    if (dir == FORWARD)  direction += front;
-    if (dir == BACKWARD) direction -= front;
-    if (dir == LEFT)     direction -= right;
-    if (dir == RIGHT)    direction += right;
-    if (dir == UP)       direction += up;
-    if (dir == DOWN)     direction -= up;
-
-	direction = glm::normalize(direction);
-	cameraPos += direction * velocity;
-}
-
-void UpdateCameraVectors() {
-	glm::vec3 newFront;
-	newFront.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-	newFront.y = sin(glm::radians(pitch));
-	newFront.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-	front = glm::normalize(newFront);
-	right = glm::normalize(glm::cross(front, worldUp));
-	up = glm::normalize(glm::cross(right, front));
-}
-
-glm::mat4 GetPerspectiveMatrix() {
-	auto& win = AppAttorney::GetWindow(App::Get());
-	return glm::infinitePerspective(glm::radians(90.0f), win.GetAspectRatio(), nearPlane);
-}
-
-glm::mat4 GetViewMatrix() {
-	return glm::lookAt(cameraPos, cameraPos + front, up);
-}
-
-glm::mat4 GetGUIViewMatrix() {
-	auto& win = AppAttorney::GetWindow(App::Get());
-	//return glm::ortho(0.f, static_cast<float>(win.GetWidth()), 0.f, static_cast<float>(win.GetHeight()), -1.f, 1.f);
-	return glm::ortho(0.f, 1.f, 0.f, 1.f, -1.f, 1.f);
-}
-
+float angle = 0.0f;
 // light related functions
 
-void GetCascadeSplits(float nearPlane, float farPlane, int cascadeCount, float lambda, fixed_float outSplits[]) {
-	float ratio = farPlane / nearPlane;
-	for (int i = 0; i < cascadeCount; i++) {
-		float p = (i + 1) / static_cast<float>(cascadeCount);
-		float log = nearPlane * std::pow(ratio, p);
-		float uniform = nearPlane + (farPlane - nearPlane) * p;
-		outSplits[i] = lambda * (log - uniform) + uniform;
-	}
-}
-
-fixed_float cascadeSplits[6];
-
-glm::vec3 GetLightDirection(LightingUBO lightInfo) {
-	if (lightInfo.lightPos.w) return glm::vec3(0.0f); // point light has no direction
-	return -glm::normalize(glm::vec3(lightInfo.lightPos));
-}
-
-glm::mat4 ComputeDirectionalLightMatrix(const glm::vec3& lightDir) {
-
-	//TODO: Choose proper center and ortho bounds based on scene contents
-	glm::vec3 center = cameraPos;
-	glm::vec3 pos = center - lightDir * 25.0f; // Push the camera "behind" the scene
-
-	glm::mat4 view = glm::lookAt(pos, center, glm::vec3(0.0f, 1.0f, 0.0f));
-
-	// Ortho bounds (tweak depending on scene)
-	float size = 20.0f;
-	glm::mat4 proj = glm::ortho(-size, size, -size, size, 1.0f, 100.0f);
-
-	return proj * view;
-}
-
-// Computes light-space matrices for each cascade
-void ComputeDirectionalLightCascades(
-	const glm::vec3& lightDir,
-	const glm::mat4& cameraView,
-	float fovDegrees,
-	float aspectRatio,
-	float nearPlane,
-	float farPlane,
-	int cascadeCount,
-	const fixed_float cascadeSplits[],
-	glm::mat4 outLightMatrices[]
-)
+Renderer::~Renderer()
 {
-	// Inverse camera view for frustum corner generation
-	glm::mat4 invView = glm::inverse(cameraView);
-
-	// Normalize light direction
-	glm::vec3 lightDirection = glm::normalize(lightDir);
-
-	float prevSplitDist = nearPlane;
-
-	for (int cascade = 0; cascade < cascadeCount; cascade++)
-	{
-		float splitDist = cascadeSplits[cascade];
-
-		// --- 1. Compute frustum corners in view space ---
-		float nearDist = prevSplitDist;
-		float farDist = splitDist;
-
-		float tanHalfFov = tanf(glm::radians(fovDegrees * 0.5f));
-		float nearHeight = nearDist * tanHalfFov;
-		float nearWidth = nearHeight * aspectRatio;
-		float farHeight = farDist * tanHalfFov;
-		float farWidth = farHeight * aspectRatio;
-
-		glm::vec3 frustumCornersVS[8] =
-		{
-			// near plane
-			{ -nearWidth,  nearHeight, -nearDist },
-			{  nearWidth,  nearHeight, -nearDist },
-			{  nearWidth, -nearHeight, -nearDist },
-			{ -nearWidth, -nearHeight, -nearDist },
-
-			// far plane
-			{ -farWidth,   farHeight,  -farDist },
-			{  farWidth,   farHeight,  -farDist },
-			{  farWidth,  -farHeight,  -farDist },
-			{ -farWidth,  -farHeight,  -farDist }
-		};
-
-		// --- 2. Transform frustum corners to world space ---
-		glm::vec3 frustumCornersWS[8];
-		for (int i = 0; i < 8; i++)
-		{
-			glm::vec4 world = invView * glm::vec4(frustumCornersVS[i], 1.0f);
-			frustumCornersWS[i] = glm::vec3(world);
-		}
-
-		// --- 3. Compute frustum center ---
-		glm::vec3 center(0.0f);
-		for (int i = 0; i < 8; i++)
-			center += frustumCornersWS[i];
-		center /= 8.0f;
-
-		// --- 4. Build light view matrix ---
-		float lightDistance = 100.0f;
-		glm::vec3 lightPos = center - lightDirection * lightDistance;
-
-		glm::mat4 lightView = glm::lookAt(
-			lightPos,
-			center,
-			glm::vec3(0.0f, 1.0f, 0.0f)
-		);
-
-		// --- 5. Compute ortho bounds in light space ---
-		glm::vec3 minLS(FLT_MAX);
-		glm::vec3 maxLS(-FLT_MAX);
-
-		for (int i = 0; i < 8; i++)
-		{
-			glm::vec3 cornerLS = glm::vec3(lightView * glm::vec4(frustumCornersWS[i], 1.0f));
-			minLS = glm::min(minLS, cornerLS);
-			maxLS = glm::max(maxLS, cornerLS);
-		}
-
-		const float depthPadding = 1000.0f;
-
-		minLS.z -= depthPadding;
-		maxLS.z += depthPadding;
-
-		// stabilization
-		float shadowMapRes = 2048.0f;
-		glm::vec2 texelSize = (glm::vec2(maxLS) - glm::vec2(minLS)) / shadowMapRes;
-
-		minLS.x = floor(minLS.x / texelSize.x) * texelSize.x;
-		minLS.y = floor(minLS.y / texelSize.y) * texelSize.y;
-		maxLS.x = minLS.x + texelSize.x * shadowMapRes;
-		maxLS.y = minLS.y + texelSize.y * shadowMapRes;
-
-		glm::mat4 lightProj = glm::ortho(
-			minLS.x, maxLS.x,
-			minLS.y, maxLS.y,
-			-maxLS.z, -minLS.z
-		);
-
-		outLightMatrices[cascade] = lightProj * lightView;
-
-		prevSplitDist = splitDist;
-	}
+	Cleanup();
 }
-
-void ComputePointLightMatrices(
-	const glm::vec3& lightPos,
-	float nearPlane,
-	float farPlane,
-	glm::mat4 outMatrices[6]
-)
-{
-	glm::mat4 proj = glm::perspective(glm::radians(90.0f), 1.0f, nearPlane, farPlane);
-
-	outMatrices[0] = proj * glm::lookAt(lightPos, lightPos + glm::vec3(1, 0, 0), glm::vec3(0, -1, 0));
-	outMatrices[1] = proj * glm::lookAt(lightPos, lightPos + glm::vec3(-1, 0, 0), glm::vec3(0, -1, 0));
-	outMatrices[2] = proj * glm::lookAt(lightPos, lightPos + glm::vec3(0, 1, 0), glm::vec3(0, 0, 1));
-	outMatrices[3] = proj * glm::lookAt(lightPos, lightPos + glm::vec3(0, -1, 0), glm::vec3(0, 0, -1));
-	outMatrices[4] = proj * glm::lookAt(lightPos, lightPos + glm::vec3(0, 0, 1), glm::vec3(0, -1, 0));
-	outMatrices[5] = proj * glm::lookAt(lightPos, lightPos + glm::vec3(0, 0, -1), glm::vec3(0, -1, 0));
-}
-
-float ComputePointLightFarPlane(const glm::vec3& attenuation)
-{
-	float c = attenuation.x;
-	float b = attenuation.y;
-	float a = attenuation.z;
-
-	float maxBrightness = 1.0f;
-	float threshold = 0.01f; // 1%
-
-	// Solve quadratic eq: a*d^2 + b*d + (c - maxBrightness/threshold) = 0
-	float c2 = c - (maxBrightness / threshold); // drop-off at 1%
-	float discriminant = b * b - 4 * a * c2;
-
-	if (a == 0 || discriminant < 0)
-		return 25.0f; // fallback
-
-	float d = (-b + sqrt(discriminant)) / (2 * a);
-	return std::max(d, 1.0f);
-}
-
-#define REN_DELTA_TIME() ((float)App::Get().DeltaTime())
-
-float angle = 0.0f;
 
 void Renderer::Initialize(void)
 {
 	auto& _rm = ResourceManager::Get();
 
+	renderLight.lightPos = glm::vec4(1.f, 1.f, 1.f, 0.f);
 	auto writer = _rm.ubos.GetUboWriter("Lighting");
-	writer->SetBlock(light);
+	writer->SetBlock(renderLight);
 	writer->Upload();
 
 	auto* modell = _rm.models.Get("asteroid");
@@ -367,15 +118,32 @@ void Renderer::Initialize(void)
 	}
 	*/
 }
-void Renderer::RenderFunction(void)
+
+void Renderer::Render()
 {
+	Clear();
+
+	UpdateCameraUBOs();
+	GetRenderables();
+	RenderFrame();
+	ClearQueue();
+	glFlush();
+}
+
+void Renderer::Clear() const
+{
+	glClearColor(DEFAULT_CLEAR_COLOR_R, DEFAULT_CLEAR_COLOR_G, DEFAULT_CLEAR_COLOR_B, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+void Renderer::UpdateCameraUBOs() {
 	auto& win = AppAttorney::GetWindow(App::Get());
 	// update Camera ubo
 	glm::mat4 projection = GetPerspectiveMatrix();
 	glm::mat4 view = GetViewMatrix();
 	auto* cameraWriter = _rm.ubos.GetUboWriter("Camera");
 	cameraWriter->SetBlock(CameraUBO{
-		cameraPos,
+		renderCamera->GetPosition(),
 		view,
 		projection
 		});
@@ -389,11 +157,13 @@ void Renderer::RenderFunction(void)
 
 	Frustum frustrum(projection * view);
 	renderQueue.SetViewFrustum(frustrum);
+}
 
+void Renderer::GetRenderables() {
 	auto& _rm = ResourceManager::Get();
 	angle += 90.f * App::Get().DeltaTime();
 
-	for(size_t i = 0; i < ASTEROID_COUNT; i++)
+	for (size_t i = 0; i < ASTEROID_COUNT; i++)
 	{
 		auto& r = tempRenderables[i];
 		// make the ring of asteroids slowly rotate, based on their distance from center
@@ -409,7 +179,7 @@ void Renderer::RenderFunction(void)
 		// rotate each asteroid on y axis, matching ring rotation speed
 		glm::quat deltaQuat = glm::quat(glm::vec3(0.0f, glm::radians(-deltaAngle), 0.0f));
 		r.transform.rotation = deltaQuat * r.transform.rotation;
-		
+
 	}
 
 	{
@@ -427,7 +197,7 @@ void Renderer::RenderFunction(void)
 	}
 
 	// in boundingBoxes generate bounding boxes using the bounding_box mesh for each renderable
-	if(showBoundingBoxes){
+	if (showBoundingBoxes) {
 		boundingBoxes.clear();
 		MeshRenderableProvider meshProvider;
 		meshProvider.meshHandle = _rm.meshes.GetHandle("primitive/bounding_box");
@@ -449,11 +219,11 @@ void Renderer::RenderFunction(void)
 	}
 
 	renderQueue.Push(tempRenderables);
-	RenderFrame();
+}
 
-	ClearQueue();
-
-	glFlush();
+void Renderer::RenderFrame() {
+	DrawShadowPass();
+	DrawMainPass();
 }
 
 void Renderer::Cleanup(void)
@@ -470,103 +240,36 @@ Renderer::Renderer(App& app) : app(app), _rm(ResourceManager::Get())
 	
 	glClearColor(DEFAULT_CLEAR_COLOR_R, DEFAULT_CLEAR_COLOR_G, DEFAULT_CLEAR_COLOR_B, 1.0f);
 
-	// temporary hardcoded camera movement
-	UpdateCameraVectors();
+	renderCamera = new FlyingCameraController({ 3.0f, 0.0f, 0.0f }, 180.0f, 0.0f);
 
 	auto& _im = InputManager::Get();
 
-	_im.BindMouseDelta([](double dx, double dy) {
-		auto& window = AppAttorney::GetWindow(App::Get());
-		if( window.GetMouseMode() != MouseMode::Disabled )
-			return;
-
-		if (dx != 0 || dy != 0) {
-			yaw += (float)dx * sensitivity;
-			pitch -= (float)dy * sensitivity;
-			if (pitch > 89.0f)
-				pitch = 89.0f;
-			if (pitch < -89.0f)
-				pitch = -89.0f;
-		}
-		UpdateCameraVectors();
+	_im.BindKey(GLFW_KEY_B, InputEventType::Pressed, [this]() {
+		this->showBoundingBoxes = !this->showBoundingBoxes;
 		});
 
-	_im.BindMouseScroll([](double xoffset, double yoffset) {
-		double scale = glm::pow(1.1, yoffset);
-		cameraSpeed *= (float)scale;
-		});
-
-	_im.BindKey(GLFW_KEY_W, InputEventType::Held, []() {
-		ProcessCameraMovement(FORWARD, REN_DELTA_TIME());
-		});
-
-	_im.BindKey(GLFW_KEY_S, InputEventType::Held, []() {
-		ProcessCameraMovement(BACKWARD, REN_DELTA_TIME());
-		});
-
-	_im.BindKey(GLFW_KEY_A, InputEventType::Held, []() {
-		ProcessCameraMovement(LEFT, REN_DELTA_TIME());
-		});
-
-	_im.BindKey(GLFW_KEY_D, InputEventType::Held, []() {
-		ProcessCameraMovement(RIGHT, REN_DELTA_TIME());
-		});
-
-	_im.BindKey(GLFW_KEY_SPACE, InputEventType::Held, []() {
-		ProcessCameraMovement(UP, REN_DELTA_TIME());
-		});
-
-	_im.BindKey(GLFW_KEY_LEFT_SHIFT, InputEventType::Held, []() {
-		ProcessCameraMovement(DOWN, REN_DELTA_TIME());
-		});
-
-	// --------------------------------
-	_im.BindKey(GLFW_KEY_B, InputEventType::Pressed, []() {
-		showBoundingBoxes = !showBoundingBoxes;
-		});
-
-	// --------------------------------
-
-	GetCascadeSplits(nearPlane, farPlane, 6, 1, cascadeSplits);
+	LightMath::GetCascadeSplits(nearPlane, farPlane, 6, 1, cascadeSplits);
 
 	Initialize();
 }
 
-Renderer::~Renderer()
-{
-	Cleanup();
-}
-
-void Renderer::Render()
-{
-	Clear();
-
-	RenderFunction();
-}
-
-void Renderer::Clear() const
-{
-	glClearColor(DEFAULT_CLEAR_COLOR_R, DEFAULT_CLEAR_COLOR_G, DEFAULT_CLEAR_COLOR_B, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-}
-
 // =================================================
-// New functions
+// Draw passes
 // =================================================
 
-void Renderer::RenderFrame() {
-	// === Shadow Pass ===
+void Renderer::DrawShadowPass()
+{
 	auto batchedShadowCasters = BatchBuilder::Build(renderQueue.GetShadowCasters());
 	ShadowUBO shadowData;
-	shadowData.lightPos = light.lightPos;
-	shadowData.cascadedSplits[0] = ComputePointLightFarPlane(glm::vec3(light.attenuationFactor));
+	shadowData.lightPos = renderLight.lightPos;
+	shadowData.cascadedSplits[0] = LightMath::ComputePointLightFarPlane(glm::vec3(renderLight.attenuationFactor));
 	std::string shaderName;
 	bool isPointLight = false;
-	if(light.lightPos.w) // point light
+	if (shadowData.lightPos.w) // point light
 	{
 		isPointLight = true;
-		ComputePointLightMatrices(
-			glm::vec3(light.lightPos),
+		LightMath::ComputePointLightMatrices(
+			glm::vec3(shadowData.lightPos),
 			0.1f,
 			shadowData.cascadedSplits[0],
 			shadowData.lightSpaceMatrix
@@ -580,10 +283,10 @@ void Renderer::RenderFrame() {
 	}
 	else // directional light
 	{
-		glm::vec3 lightDir = GetLightDirection(light);
+		glm::vec3 lightDir = LightMath::GetLightDirection(renderLight);
 		auto& win = AppAttorney::GetWindow(App::Get());
 
-		ComputeDirectionalLightCascades(
+		LightMath::ComputeDirectionalLightCascades(
 			lightDir,
 			GetViewMatrix(),
 			90.0f,
@@ -613,7 +316,10 @@ void Renderer::RenderFrame() {
 	ShadowFramebuffer::Unbind(glState);
 	auto& win = AppAttorney::GetWindow(App::Get());
 	win.ResetViewport();
-	// === Main Pass ===
+}
+
+void Renderer::DrawMainPass()
+{
 	auto transparentList = renderQueue.GetSortedLayer(RenderLayer::Transparent);
 	//sort back to front using renderable::sortDistance
 	std::stable_sort(transparentList.begin(), transparentList.end(),
@@ -621,7 +327,7 @@ void Renderer::RenderFrame() {
 			return a.item.sortDistance > b.item.sortDistance;
 		});
 
-	
+
 	auto batchedOpaque = BatchBuilder::Build(renderQueue.GetSortedLayer(RenderLayer::Opaque));
 	auto batchedTransparent = BatchBuilder::Build(transparentList);
 	auto batchedGUI = BatchBuilder::Build(renderQueue.GetSortedLayer(RenderLayer::GUI));
@@ -630,6 +336,10 @@ void Renderer::RenderFrame() {
 	DrawList(batchedTransparent);
 	DrawList(batchedGUI);
 }
+
+// =================================================
+// Draw functions
+// =================================================
 
 void Renderer::DrawList(const std::vector<RenderSubmission>& submissions)
 {

@@ -98,3 +98,18 @@ void App::Run()
 		window->PollEvents();
 	}
 }
+
+uint16_t App::GetWindowWidth() const
+{
+	return window->GetWidth();
+}
+
+uint16_t App::GetWindowHeight() const
+{
+	return window->GetHeight();
+}
+
+float App::GetWindowAspectRatio() const
+{
+	return window->GetAspectRatio();
+}
