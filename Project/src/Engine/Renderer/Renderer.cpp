@@ -27,7 +27,27 @@ std::vector<Renderable> boundingBoxes;
 std::vector<Renderable> fpsText;
 #define ASTEROID_COUNT 1000
 float angle = 0.0f;
-// light related functions
+
+Renderer::Renderer(App& app) : app(app), _rm(ResourceManager::Get())
+{
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glClearColor(DEFAULT_CLEAR_COLOR_R, DEFAULT_CLEAR_COLOR_G, DEFAULT_CLEAR_COLOR_B, 1.0f);
+
+	auto& _im = InputManager::Get();
+
+	_im.BindKey(GLFW_KEY_B, InputEventType::Pressed, [this]() {
+		this->showBoundingBoxes = !this->showBoundingBoxes;
+		});
+
+	LightMath::GetCascadeSplits(nearPlane, farPlane, 6, 1, cascadeSplits);
+
+	Initialize();
+}
 
 Renderer::~Renderer()
 {
@@ -37,11 +57,6 @@ Renderer::~Renderer()
 void Renderer::Initialize(void)
 {
 	auto& _rm = ResourceManager::Get();
-
-	renderLight.lightPos = glm::vec4(1.f, 1.f, 1.f, 0.f);
-	auto writer = _rm.ubos.GetUboWriter("Lighting");
-	writer->SetBlock(renderLight);
-	writer->Upload();
 
 	auto* modell = _rm.models.Get("asteroid");
 	Transform t = {
@@ -117,6 +132,16 @@ void Renderer::Initialize(void)
 		guiProvider.GenerateRenderables(tempRenderables);
 	}
 	*/
+}
+
+void Renderer::UpdateLighting(LightingUBO* light)
+{
+	if(light)
+		renderLight = light;
+	auto& _rm = ResourceManager::Get();
+	auto* lightingWriter = _rm.ubos.GetUboWriter("Lighting");
+	lightingWriter->SetBlock(*renderLight);
+	lightingWriter->Upload();
 }
 
 void Renderer::Render()
@@ -230,29 +255,6 @@ void Renderer::Cleanup(void)
 {
 }
 
-Renderer::Renderer(App& app) : app(app), _rm(ResourceManager::Get())
-{
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
-
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	
-	glClearColor(DEFAULT_CLEAR_COLOR_R, DEFAULT_CLEAR_COLOR_G, DEFAULT_CLEAR_COLOR_B, 1.0f);
-
-	renderCamera = new FlyingCameraController({ 3.0f, 0.0f, 0.0f }, 180.0f, 0.0f);
-
-	auto& _im = InputManager::Get();
-
-	_im.BindKey(GLFW_KEY_B, InputEventType::Pressed, [this]() {
-		this->showBoundingBoxes = !this->showBoundingBoxes;
-		});
-
-	LightMath::GetCascadeSplits(nearPlane, farPlane, 6, 1, cascadeSplits);
-
-	Initialize();
-}
-
 // =================================================
 // Draw passes
 // =================================================
@@ -261,8 +263,8 @@ void Renderer::DrawShadowPass()
 {
 	auto batchedShadowCasters = BatchBuilder::Build(renderQueue.GetShadowCasters());
 	ShadowUBO shadowData;
-	shadowData.lightPos = renderLight.lightPos;
-	shadowData.cascadedSplits[0] = LightMath::ComputePointLightFarPlane(glm::vec3(renderLight.attenuationFactor));
+	shadowData.lightPos = renderLight->lightPos;
+	shadowData.cascadedSplits[0] = LightMath::ComputePointLightFarPlane(glm::vec3(renderLight->attenuationFactor));
 	std::string shaderName;
 	bool isPointLight = false;
 	if (shadowData.lightPos.w) // point light
@@ -283,7 +285,7 @@ void Renderer::DrawShadowPass()
 	}
 	else // directional light
 	{
-		glm::vec3 lightDir = LightMath::GetLightDirection(renderLight);
+		glm::vec3 lightDir = LightMath::GetLightDirection(*renderLight);
 		auto& win = AppAttorney::GetWindow(App::Get());
 
 		LightMath::ComputeDirectionalLightCascades(

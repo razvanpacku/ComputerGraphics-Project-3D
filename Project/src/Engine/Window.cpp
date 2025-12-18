@@ -52,10 +52,6 @@ Window::Window(uint16_t width, uint16_t height, const std::string& name, int32_t
 	// Disable V-Sync
 	glfwSwapInterval(0);
 
-	// Set initial mouse mode
-	SetMouseMode(MouseMode::Disabled);
-	InputManagerAttorney::SetIgnoreDelta(InputManager::Get()); // prevent large delta on first frame due to mouse mode
-
 	// Load OpenGL functions with GLAD
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
 		std::cerr << "Failed to initialize GLAD\n";

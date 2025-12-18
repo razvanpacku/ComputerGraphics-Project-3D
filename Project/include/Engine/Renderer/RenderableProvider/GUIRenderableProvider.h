@@ -1,7 +1,7 @@
 #pragma once
 #include "IRendarableProvider.h"
 #include "../../Resources/ResourceManager.h"
-#include "Engine/Components/Transform.h"
+#include "Engine/DataStructures/Transform.h"
 class GUIRederableProvider : public IRendarableProvider
 {
 public:
@@ -36,28 +36,5 @@ public:
 		renderable.materialHandle = materialHandle;
 
 		out.push_back(renderable);
-	}
-
-	Renderable GenerateRenderable()
-	{
-		Renderable renderable;
-		if (materialHandle.IsValid() == false)
-			return renderable;
-
-		auto& _mm = ResourceManager::Get().meshes;
-
-		renderable.textureHandle = textureHandle;
-		renderable.transform = transform;
-
-		renderable.relativePosition = relativePosition;
-		renderable.relativeSize = relativeSize;
-		renderable.anchorPoint = anchorPoint;
-
-		renderable.zOrder = zOrder;
-		renderable.uvRect = uvRect;
-		renderable.layer = RenderLayer::GUI;
-		renderable.meshHandle = _mm.GetHandle("primitive/quad");
-		renderable.materialHandle = materialHandle;
-		return renderable;
 	}
 };

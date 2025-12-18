@@ -1,7 +1,7 @@
 #pragma once
 #include "IRendarableProvider.h"
 #include "../../Resources/ResourceManager.h"
-#include "Engine/Components/Transform.h"
+#include "Engine/DataStructures/Transform.h"
 
 #include "GUIRenderableProvider.h"
 

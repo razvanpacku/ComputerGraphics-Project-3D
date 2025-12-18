@@ -19,6 +19,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Engine\SceneGraph\Entities\Light.cpp" />
+    <ClCompile Include="src\Engine\SceneGraph\Systems\RenderSystem.cpp" />
+    <ClCompile Include="src\Engine\SceneGraph\Entities\Camera.cpp" />
+    <ClCompile Include="src\Engine\SceneGraph\Entity.cpp" />
+    <ClCompile Include="src\Engine\SceneGraph\Scene.cpp" />
     <ClCompile Include="src\Engine\Controllers\FlyingCameraController.cpp" />
     <ClCompile Include="src\Engine\Renderer\ShadowFramebuffer.cpp" />
     <ClCompile Include="src\Engine\Resources\MeshFactory.cpp" />
@@ -44,9 +49,21 @@
     <ClCompile Include="src\Engine\Resources\TextureManager.cpp" />
     <ClCompile Include="src\Engine\Resources\UboManager.cpp" />
     <ClCompile Include="src\Engine\Resources\UboWriter.cpp" />
-    <ClCompile Include="src\Engine\Components\Transform.cpp" />
+    <ClCompile Include="src\Engine\DataStructures\Transform.cpp" />
+    <ClCompile Include="src\Demo\TestScene.cpp" />
+    <ClCompile Include="src\Engine\SceneGraph\Entities\Root.cpp" />
+    <ClCompile Include="src\Engine\SceneGraph\ISystem.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\Engine\Components\CameraComponent.h" />
+    <ClInclude Include="include\Engine\Components\LightComponent.h" />
+    <ClInclude Include="include\Engine\SceneGraph\Entities\Camera.h" />
+    <ClInclude Include="include\Engine\Components\Components.h" />
+    <ClInclude Include="include\Engine\Components\InternalNameComponent.h" />
+    <ClInclude Include="include\Engine\Components\NameComponent.h" />
+    <ClInclude Include="include\Engine\SceneGraph\Entities\Includes.h" />
+    <ClInclude Include="include\Engine\SceneGraph\Entity.h" />
+    <ClInclude Include="include\Engine\Components\HierarchyComponent.h" />
     <ClInclude Include="include\Engine\Controllers\FlyingCameraController.h" />
     <ClInclude Include="include\Engine\Renderer\Culling\Frustum.h" />
     <ClInclude Include="include\Engine\Renderer\Culling\BoundingBox.h" />
@@ -62,6 +79,7 @@
     <ClInclude Include="include\Engine\Resources\Ubo.h" />
     <ClInclude Include="include\Engine\Resources\UboDefs.h" />
     <ClInclude Include="include\Engine\Resources\UniformSetter.h" />
+    <ClInclude Include="include\Engine\SceneGraph\Systems\Includes.h" />
     <ClInclude Include="include\external\assimp\aabb.h" />
     <ClInclude Include="include\external\assimp\ai_assert.h" />
     <ClInclude Include="include\external\assimp\anim.h" />
@@ -448,10 +466,16 @@
     <ClInclude Include="include\Engine\Renderer\Renderable.h" />
     <ClInclude Include="include\Engine\Renderer\RenderQueue.h" />
     <ClInclude Include="include\Engine\Renderer\RenderableProvider\IRendarableProvider.h" />
-    <ClInclude Include="include\Engine\Components\Transform.h" />
+    <ClInclude Include="include\Engine\DataStructures\Transform.h" />
     <ClInclude Include="include\Engine\Resources\MeshFactory.h" />
     <ClInclude Include="include\Engine\Renderer\ShadowFramebuffer.h" />
     <ClInclude Include="include\Engine\Renderer\IRenderCamera.h" />
+    <ClInclude Include="include\Engine\SceneGraph\Scene.h" />
+    <ClInclude Include="include\Demo\TestScene.h" />
+    <ClInclude Include="include\Engine\SceneGraph\Entities\Root.h" />
+    <ClInclude Include="include\Engine\SceneGraph\ISystem.h" />
+    <ClInclude Include="include\Engine\SceneGraph\Systems\RenderSystem.h" />
+    <ClInclude Include="include\Engine\SceneGraph\Entities\Light.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="include\external\assimp\color4.inl" />

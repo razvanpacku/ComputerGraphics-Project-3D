@@ -64,6 +64,19 @@ FlyingCameraController::FlyingCameraController(glm::vec3 postion, float yaw, flo
 	connections.emplace_back(_im.BindKey(GLFW_KEY_LEFT_SHIFT, InputEventType::Held, [this]() {
 		ProcessCameraMovement(DOWN, ((float)App::Get().DeltaTime()));
 		}));
+
+	InputManager::Get().BindKey(GLFW_KEY_C, InputEventType::Pressed, []() {
+		//toggle mouse mode between disabled and normal
+		auto& _im = InputManager::Get();
+		if (_im.GetMouseMode() == MouseMode::Disabled)
+			_im.SetMouseMode(MouseMode::Normal);
+		else
+			_im.SetMouseMode(MouseMode::Disabled);
+		});
+
+
+	// set mouse mode to disabled initially
+	_im.SetMouseMode(MouseMode::Disabled);
 }
 
 glm::mat4 FlyingCameraController::GetViewMatrix() const

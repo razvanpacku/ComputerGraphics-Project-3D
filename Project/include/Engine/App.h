@@ -7,6 +7,7 @@ class InputManager;
 class Window;
 class Renderer;
 class BatchBuilder;
+class Scene;
 
 #define WINDOW_WIDTH 1000
 #define WINDOW_HEIGHT 1000
@@ -16,6 +17,7 @@ class App
 public:
 	static void Init(int32_t argc, char** argv);
 	static App& Get(const std::string& name = "", uint16_t width = WINDOW_WIDTH, uint16_t height = WINDOW_HEIGHT);
+	void SetScene(Scene* newScene);
 
 	double DeltaTime() const { return deltaTime; }
 
@@ -38,6 +40,9 @@ private:
 
 	Window* window;
 	Renderer* renderer;
+
+	Scene* scene;
+	bool firstFrame = true;
 
 	double lastFrame = 0.;
 	double deltaTime = 0.;

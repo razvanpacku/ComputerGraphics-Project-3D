@@ -8,6 +8,7 @@
 #include "Engine/Resources/UboDefs.h"
 
 #include "IRenderCamera.h"
+#include "Engine/Components/LightComponent.h"
 
 #define DEFAULT_CLEAR_COLOR_R 0.0f
 #define DEFAULT_CLEAR_COLOR_G 0.0f
@@ -31,6 +32,9 @@ public:
 	// =================================================
 	void Submit(const Renderable& r) { renderQueue.Push(r); }
 	void Submit(const std::vector<Renderable>& rs) { renderQueue.Push(rs); }
+
+	void SetRenderCamera(IRenderCamera* camera) { renderCamera = camera; }
+	void UpdateLighting(LightingUBO* light = nullptr);
 private:
 	
 	App& app;
@@ -40,7 +44,7 @@ private:
 	GLStateCache glState;
 
 	IRenderCamera* renderCamera = nullptr;
-	Light renderLight;
+	LightingUBO* renderLight = nullptr;
 
 	ShadowFramebuffer
 		pointShadowFBO	= ShadowFramebuffer(ShadowMapType::Point),

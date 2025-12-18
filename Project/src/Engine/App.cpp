@@ -3,6 +3,7 @@
 #include "Engine/Window.h"
 #include "Engine/Renderer/Renderer.h"
 #include "Engine/InputManager.h"
+#include "Engine/SceneGraph/Scene.h"
 
 #include <chrono>
 #include <iostream>
@@ -52,21 +53,13 @@ App::App(const std::string& name, uint16_t width, uint16_t height) : name(name)
 	InputManager::Get().BindKey(GLFW_KEY_F11, InputEventType::Pressed, [this]() {
 		this->window->ToggleFullscreen();
 		});
-
-	InputManager::Get().BindKey(GLFW_KEY_C, InputEventType::Pressed, []() {
-		//toggle mouse mode between disabled and normal
-		auto& _im = InputManager::Get();
-		if (_im.GetMouseMode() == MouseMode::Disabled)
-			_im.SetMouseMode(MouseMode::Normal);
-		else
-			_im.SetMouseMode(MouseMode::Disabled);
-		});
 }
 
 App::~App()
 {
 	delete renderer;
 	delete window;
+	if (scene) delete scene;
 }
 
 void App::Init(int32_t argc, char** argv)
@@ -90,7 +83,16 @@ void App::Run()
 		lastFrame = currentFrame;
 
 		InputManager::Get().Update();
-		//update game logic here
+
+		if(firstFrame && scene)
+		{
+			deltaTime = 0.0;
+			firstFrame = false;
+		}
+		else if(!firstFrame && scene)
+		{
+			scene->Update(deltaTime);
+		}
 
 		renderer->Render();
 
@@ -99,6 +101,23 @@ void App::Run()
 	}
 }
 
+void App::SetScene(Scene* newScene)
+{
+	if (scene)
+	{
+		delete scene;
+	}
+	scene = newScene;
+	if (scene)
+	{
+		scene->Init({renderer});
+		Scene::SetActiveScene(scene);
+		firstFrame = true;
+	}
+	else {
+		Scene::SetActiveScene(nullptr);
+	}
+}
 uint16_t App::GetWindowWidth() const
 {
 	return window->GetWidth();
