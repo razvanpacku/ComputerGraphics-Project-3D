@@ -35,6 +35,9 @@
     <ClCompile Include="src\Engine\SceneGraph\ISystem.cpp" />
     <ClCompile Include="src\Engine\SceneGraph\Systems\RenderSystem.cpp" />
     <ClCompile Include="src\Engine\SceneGraph\Entities\Light.cpp" />
+    <ClCompile Include="src\Engine\SceneGraph\Entities\TransformEntity.cpp" />
+    <ClCompile Include="src\Engine\DataStructures\TransformFunctions.cpp" />
+    <ClCompile Include="src\Engine\SceneGraph\Systems\TransformSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\external\assimp\Compiler\poppack1.h" />
@@ -458,6 +461,11 @@
     <ClInclude Include="include\Engine\Components\CameraComponent.h" />
     <ClInclude Include="include\Engine\SceneGraph\Entities\Light.h" />
     <ClInclude Include="include\Engine\Components\LightComponent.h" />
+    <ClInclude Include="include\Engine\Components\TransformComponent.h" />
+    <ClInclude Include="include\Engine\SceneGraph\Entities\TransformEntity.h" />
+    <ClInclude Include="include\Engine\DataStructures\TransformFunctions.h" />
+    <ClInclude Include="include\Engine\SceneGraph\Systems\TransformSystem.h" />
+    <ClInclude Include="include\Engine\SceneGraph\Entities\Anchor.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="include\external\assimp\color4.inl" />

@@ -16,7 +16,7 @@ class Camera : public Entity
 {
 public:
 	Camera(CameraType type = CameraType::FLYING_CAMERA, const std::string& name = "Camera");
-	~Camera();
+	virtual ~Camera();
 
 	void SwitchCameraType(CameraType newType);
 	CameraType GetCameraType() const;

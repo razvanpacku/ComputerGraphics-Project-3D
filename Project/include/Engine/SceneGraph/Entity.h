@@ -39,6 +39,11 @@ public:
 	Entity* const FindFirstDescendant(const std::string& name) const;
 	void Destroy();
 
+	const entt::entity& GetHandle() const { return handle; }
+protected:
+	template<typename T>
+	T* const GetSystem() const;
+
 private:
 	entt::entity handle;
 	Scene* scene;
@@ -105,5 +110,11 @@ void Entity::RemoveComponent()
 		throw std::runtime_error("Cannot add InternalComponent directly");
 	}
 	scene->registry.remove<T>(handle);
+}
+
+template<typename T>
+T* const Entity::GetSystem() const
+{
+	return scene->GetSystem<T>();
 }
 

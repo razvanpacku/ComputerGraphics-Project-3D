@@ -3,6 +3,8 @@
 #include "Engine/SceneGraph/Entities/Includes.h"
 #include "Engine/SceneGraph/Systems/Includes.h"
 
+#include "Engine/DataStructures/TransformFunctions.h"
+
 #include <stack>
 #include <iostream>
 
@@ -37,9 +39,9 @@ void Scene::Init(EngineServices services)
     OnCreate();
 
 	// Run startup systems
-    for (auto& systemPair : systems) {
-        if (systemPair.second->ShouldRunOnStartup()) {
-            systemPair.second->OnUpdate(0.0f);
+    for (auto& systemPair : systemOrder) {
+        if (systemPair->ShouldRunOnStartup()) {
+            systemPair->OnUpdate(0.0f);
         }
     }
 
@@ -49,8 +51,8 @@ void Scene::Init(EngineServices services)
 void Scene::Update(double deltaTime)
 {
     OnUpdate(deltaTime);
-    for (auto& systemPair : systems) {
-        systemPair.second->OnUpdate(deltaTime);
+    for (auto& systemPair : systemOrder) {
+        systemPair->OnUpdate(deltaTime);
     }
 }
 
@@ -89,12 +91,16 @@ void Scene::AddOrMoveEntity(Entity& entity, const Entity* const parent)
     }
 
     auto* childH = registry.try_get<HierarchyComponent>(entity.handle);
-    if (!childH) {
-        childH = &registry.emplace<HierarchyComponent>(entity.handle);
+    auto& parentH = registry.get<HierarchyComponent>(Rparent->handle);
+    if (parentH.parent == entity.handle) {
+        // Cannot set parent to a child entity
+        return;
     }
 
+	bool isInTree = childH->parent != entt::null;
+
     // Detach from old parent
-    if (childH->parent != entt::null) {
+    if (isInTree) {
         auto& oldParentH = registry.get<HierarchyComponent>(childH->parent);
         if (oldParentH.firstChild == entity.handle) {
             oldParentH.firstChild = childH->nextSibling;
@@ -103,11 +109,31 @@ void Scene::AddOrMoveEntity(Entity& entity, const Entity* const parent)
             registry.get<HierarchyComponent>(childH->prevSibling).nextSibling = childH->nextSibling;
         if (childH->nextSibling != entt::null)
             registry.get<HierarchyComponent>(childH->nextSibling).prevSibling = childH->prevSibling;
+
+		// If it has a TransformComponent, make sure to preserve world transform (this involves possibly updating parent's transform first)
+        if (registry.all_of<TransformComponent>(entity.handle)) {
+            auto* transformSystem = GetSystem<TransformSystem>();
+            if (!transformSystem) {
+                throw std::runtime_error("TransformSystem not found in scene.");
+			}
+			transformSystem->UpdateEntity(entity.handle);
+            auto& transformC = registry.get<TransformComponent>(entity.handle);
+            glm::mat4 worldMatrix = transformC.worldMatrix;
+
+			glm::mat4 parentWorldMatrix(1.0f);
+            auto* newParentTransformC = registry.try_get<TransformComponent>(Rparent->handle);
+            if (newParentTransformC) {
+                transformSystem->UpdateEntity(Rparent->handle);
+                parentWorldMatrix = newParentTransformC->worldMatrix;
+            }
+            glm::mat4 newLocalMatrix = glm::inverse(parentWorldMatrix) * worldMatrix;
+            TransformFunctions::Decompose(transformC, newLocalMatrix);
+			transformC.localDirty = false;
+        }
     }
 
     // Attach to new parent
 
-    auto& parentH = registry.get<HierarchyComponent>(Rparent->handle);
     childH->parent = Rparent->handle;
     childH->prevSibling = entt::null;
     childH->nextSibling = parentH.firstChild;
@@ -194,7 +220,7 @@ Entity* const Scene::FindFirstChild(const std::string& name, const Entity* const
         if (it != entityMap.end()) {
             Entity* childEntity = it->second;
             if (childEntity->HasComponent<InternalNameComponent>()) {
-                const auto& nameComp = childEntity->GetComponent<InternalNameComponent>();
+				const auto& nameComp = registry.get<InternalNameComponent>(childHandle);
                 if (nameComp.name == name) {
                     return childEntity;
                 }
@@ -241,7 +267,7 @@ Entity* const Scene::FindFirstDescendant(const std::string& name, const Entity* 
 
             // check InternalNameComponent next
             if (currentEntity->HasComponent<InternalNameComponent>()) {
-                const auto& nameComp = currentEntity->GetComponent<InternalNameComponent>();
+				const auto& nameComp = registry.get<InternalNameComponent>(currentHandle);
                 if (nameComp.name == name) {
                     return currentEntity;
                 }
@@ -331,6 +357,16 @@ void Scene::PrintHierarchy() const {
             Entity* entity = it->second;
             std::cout << *entity;
 
+			// temp check if it has transform component and print its local position, and if it has the dirty tag or the localDirty flag set
+			auto* transformC = registry.try_get<TransformComponent>(handle);
+			bool dirty = registry.all_of<TransformDirtyTag>(handle);
+            if (transformC) {
+                std::cout << " ("
+                          << transformC->position.x << ", "
+                          << transformC->position.y << ", "
+					<< transformC->position.z << " --- " << transformC->localDirty << ", " << dirty << ")";
+            }
+
             if (hier && hier->firstChild != entt::null) {
                 std::cout << ":";
             }
@@ -378,5 +414,6 @@ void Scene::SetupInternalEntities()
 
 void Scene::SetupDefaultSystems(EngineServices services)
 {
-	AddSystem<RenderSystem>(services.renderer);
+	AddSystem<RenderSystem>(100, services.renderer);
+	AddSystem<TransformSystem>(50, &registry);
 }

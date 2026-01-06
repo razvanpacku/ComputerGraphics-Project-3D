@@ -10,7 +10,7 @@ class Renderer;
 class RenderSystem : public ISystem
 {
 public:
-	RenderSystem(Scene* scene, Renderer* renderer);
+	RenderSystem(Scene* scene, int16_t order, Renderer* renderer);
 	~RenderSystem() override = default;
 	void OnUpdate(double deltaTime) override;
 

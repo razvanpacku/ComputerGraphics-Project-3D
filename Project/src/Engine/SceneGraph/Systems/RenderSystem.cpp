@@ -1,8 +1,8 @@
 #include "Engine/SceneGraph/Systems/RenderSystem.h"
 #include "Engine/Renderer/Renderer.h"
 
-RenderSystem::RenderSystem(Scene* scene, Renderer* renderer)
-	: ISystem(scene), renderer(renderer)
+RenderSystem::RenderSystem(Scene* scene, int16_t order, Renderer* renderer)
+	: ISystem(scene, order), renderer(renderer)
 {
 	runOnStartup = true;
 

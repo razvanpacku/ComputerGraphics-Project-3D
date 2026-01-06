@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include "Scene.h"
+class Scene;
 
 // ======================================================
 // ISystem
@@ -10,13 +10,15 @@
 class ISystem
 {
 public:
-	ISystem(Scene* scene);
+	ISystem(Scene* scene, int16_t order = 0);
 	virtual ~ISystem() = default;
 	virtual void OnUpdate(double deltaTime) = 0;
 
 	virtual std::string GetName() const = 0;
 	bool ShouldRunOnStartup() const { return runOnStartup; }
+	int16_t GetOrder() const { return order; }
 protected:
 	Scene* const scene;
+	int16_t order;
 	bool runOnStartup = false;
 };

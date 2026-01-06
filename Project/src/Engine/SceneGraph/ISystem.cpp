@@ -2,7 +2,7 @@
 
 #include "Engine/SceneGraph/Scene.h"
 
-ISystem::ISystem(Scene* scene)
-	: scene(scene)
+ISystem::ISystem(Scene* scene, int16_t order)
+	: scene(scene), order(order)
 {
 }

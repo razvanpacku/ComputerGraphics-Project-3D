@@ -53,7 +53,7 @@ public:
 protected:
 	//void AddSystem(ISystem* system);
 	template<typename T, typename... Args>
-	T& AddSystem(Args&&... args);
+	T& AddSystem(int16_t order, Args&&... args);
 	template<typename T>
 	T* const GetSystem() const;
 
@@ -71,7 +71,9 @@ private:
 	Root* root;
 
 	std::unordered_map<entt::entity, Entity*> entityMap;
+
 	std::unordered_map<std::type_index, ISystem*> systems;
+	std::vector<ISystem*> systemOrder;
 
 	void MakeInternal(Entity* entity, const std::string& name);
 
@@ -94,7 +96,7 @@ private:
 #include "ISystem.h"
 
 template<typename T, typename... Args>
-T& Scene::AddSystem(Args&&... args)
+T& Scene::AddSystem(int16_t order, Args&&... args)
 {
 	static_assert(std::is_base_of_v<ISystem, T>,
 		"T must derive from ISystem");
@@ -108,8 +110,17 @@ T& Scene::AddSystem(Args&&... args)
 		);
 	}
 
-	auto* system = new T(this, std::forward<Args>(args)...);
+	auto* system = new T(this, order, std::forward<Args>(args)...);
 	systems[type] = system;
+	systemOrder.push_back(system);
+
+	// Sort systems based on order
+	std::sort(systemOrder.begin(), systemOrder.end(),
+		[](ISystem* a, ISystem* b) {
+			return a->GetOrder() < b->GetOrder();
+		}
+	);
+
 	return *system;
 }
 
