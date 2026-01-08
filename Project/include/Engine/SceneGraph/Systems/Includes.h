@@ -4,3 +4,5 @@
 #include "RenderSystem.h"
 #include "TransformSystem.h"
 #include "UITransformSystem.h"
+#include "PhysicsSystem.h"
+#include "CollisionSystem.h"

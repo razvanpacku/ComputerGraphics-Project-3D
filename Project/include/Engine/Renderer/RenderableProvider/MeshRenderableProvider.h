@@ -10,6 +10,7 @@ public:
 	Mesh* dynamicMesh = nullptr; // optional direct mesh pointer for dynamic meshes
 	MaterialManager::Handle materialHandle = {};
 	glm::mat4 modelMatrix = glm::mat4(1.0f);
+	bool castShadows = false;
 
 	void GenerateRenderables(std::vector<Renderable>& out) override
 	{
@@ -22,6 +23,7 @@ public:
 		renderable.mesh = dynamicMesh;
 		renderable.materialHandle = materialHandle;
 		renderable.modelMatrix = modelMatrix;
+		renderable.castShadows = castShadows;
 
 		Mesh* meshPtr = dynamicMesh ? dynamicMesh : _mm.Get(meshHandle);
 		if (meshPtr)

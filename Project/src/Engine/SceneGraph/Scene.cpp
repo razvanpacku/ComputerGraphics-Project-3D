@@ -26,6 +26,7 @@ Scene::~Scene()
         delete pair.second;
     }
     entityMap.clear();
+	reverseEntityMap.clear();
 	registry.clear();
 }
 
@@ -46,6 +47,8 @@ void Scene::Init(EngineServices services)
     }
 
     SetActiveScene(oldSene);
+
+	initialized = true;
 }
 
 void Scene::Update(double deltaTime)
@@ -77,6 +80,7 @@ void Scene::AddOrMoveEntity(Entity& entity, const Entity* const parent)
             throw std::runtime_error("Root entity cannot have a parent.");
         }
 		entityMap[entity.handle] = &entity;
+		reverseEntityMap[&entity] = entity.handle;
 		return;
     }
 
@@ -149,6 +153,7 @@ void Scene::AddOrMoveEntity(Entity& entity, const Entity* const parent)
     parentH.firstChild = entity.handle;
 
 	entityMap[entity.handle] = &entity;
+	reverseEntityMap[&entity] = entity.handle;
 }
 
 void Scene::GetChildren(const Entity& entity, std::vector<Entity*>& outChildren)
@@ -335,6 +340,7 @@ void Scene::RemoveEntity(Entity* entity) {
     }
     // Remove from entity map and registry
     entityMap.erase(entity->handle);
+	reverseEntityMap.erase(entity);
     delete entity;
     entity = nullptr;
 }
@@ -342,6 +348,14 @@ void Scene::RemoveEntity(Entity* entity) {
 const Entity* const Scene::GetRoot() const
 {
     return root;
+}
+
+Entity* const Scene::GetEntityFromHandle(const entt::entity& handle) const {
+    auto it = entityMap.find(handle);
+    if (it != entityMap.end()) {
+        return it->second;
+    }
+	return nullptr;
 }
 
 void Scene::PrintHierarchy() const {
@@ -418,7 +432,9 @@ void Scene::SetupInternalEntities()
 
 void Scene::SetupDefaultSystems(EngineServices services)
 {
-	AddSystem<RenderSystem>(100, services.renderer, &registry);
+	AddSystem<PhysicsSystem>(10, &registry);
+	AddSystem<CollisionSystem>(20, &registry);
 	AddSystem<TransformSystem>(50, &registry);
     AddSystem<UITransformSystem>(51, &registry);
+    AddSystem<RenderSystem>(100, services.renderer, &registry);
 }

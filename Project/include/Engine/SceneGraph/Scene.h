@@ -33,6 +33,8 @@ public:
 	// --- Scene Interface ---
 	virtual void OnCreate() {}
 	virtual void OnUpdate(double deltaTime) {}
+
+	bool IsInitialized() const { return initialized; }
 protected:
 	virtual void OnDestroy() {}
 
@@ -46,6 +48,8 @@ public:
 	Entity* const FindFirstDescendant(const std::string& name, const Entity* const parent = nullptr);
 	Entity* const FindInternalEntity(const std::string& name);
 	void RemoveEntity(Entity* entity);
+
+	Entity* const GetEntityFromHandle(const entt::entity& handle) const;
 
 	const Entity* const GetRoot() const;
 
@@ -71,9 +75,12 @@ private:
 	Root* root;
 
 	std::unordered_map<entt::entity, Entity*> entityMap;
+	std::unordered_map<Entity*, entt::entity> reverseEntityMap;
 
 	std::unordered_map<std::type_index, ISystem*> systems;
 	std::vector<ISystem*> systemOrder;
+
+	bool initialized = false;
 
 	void MakeInternal(Entity* entity, const std::string& name);
 

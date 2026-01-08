@@ -18,6 +18,9 @@ void TransformSystem::UpdateTransform(entt::entity entity)
 {
 	auto* transformC = registry->try_get<TransformComponent>(entity);
 	if (transformC) {
+		// Store old scale
+		glm::vec3 oldScale = TransformFunctions::DecomposeScale(transformC->worldMatrix);
+
 		// Update local matrix
 		if(transformC->localDirty) {
 			// If localDirty is true, we need to recompute local matrix
@@ -39,6 +42,15 @@ void TransformSystem::UpdateTransform(entt::entity entity)
 		}
 		else {
 			transformC->worldMatrix = transformC->localMatrix;
+		}
+
+		// check if entity has a rigidbody component and update its intertia tensor with new scale
+		auto* rigidbodyC = registry->try_get<RigidBodyComponent>(entity);
+		if (rigidbodyC) {
+			glm::vec3 nonUniformScale = TransformFunctions::DecomposeScale(transformC->worldMatrix);
+			float s = glm::length(nonUniformScale / oldScale) / sqrt(3.0f); // average scale factor
+			rigidbodyC->inertiaTensor *= s * s;
+			rigidbodyC->inverseInertiaTensor /= s * s;
 		}
 
 		// check if entity is renderable and update its transforms

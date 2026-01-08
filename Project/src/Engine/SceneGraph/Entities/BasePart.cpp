@@ -52,6 +52,9 @@ void BasePart::ProvideRenderables(std::vector<Renderable>& outRenderables)
 
 	meshProvider->modelMatrix = transformComponent->worldMatrix;
 
+	if (shape != BasePartShape::QUAD && shape != BasePartShape::QUAD_SINGLE_FACE)
+		meshProvider->castShadows = true;
+
 	meshProvider->GenerateRenderables(outRenderables);
 }
 

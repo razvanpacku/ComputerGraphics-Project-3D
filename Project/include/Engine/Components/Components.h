@@ -12,6 +12,8 @@
 #include "CameraComponent.h"
 #include "LightComponent.h"
 #include "RenderableComponent.h"
+#include "RigidBodyComponent.h"
+#include "ColliderComponent.h"
 
 struct RootComponent {}; // An empty component to mark the root entity of a scene graph.
 
