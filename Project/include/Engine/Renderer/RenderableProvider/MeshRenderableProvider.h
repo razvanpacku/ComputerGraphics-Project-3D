@@ -9,7 +9,7 @@ public:
 	MeshManager::Handle meshHandle = {};
 	Mesh* dynamicMesh = nullptr; // optional direct mesh pointer for dynamic meshes
 	MaterialManager::Handle materialHandle = {};
-	Transform transform;
+	glm::mat4 modelMatrix = glm::mat4(1.0f);
 
 	void GenerateRenderables(std::vector<Renderable>& out) override
 	{
@@ -21,7 +21,7 @@ public:
 		renderable.meshHandle = meshHandle;
 		renderable.mesh = dynamicMesh;
 		renderable.materialHandle = materialHandle;
-		renderable.transform = transform;
+		renderable.modelMatrix = modelMatrix;
 
 		Mesh* meshPtr = dynamicMesh ? dynamicMesh : _mm.Get(meshHandle);
 		if (meshPtr)

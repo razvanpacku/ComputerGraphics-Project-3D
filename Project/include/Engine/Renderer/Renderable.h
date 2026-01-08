@@ -59,7 +59,7 @@ struct Renderable
 
 	Mesh* mesh = nullptr;           // optional direct mesh pointer for dynamic meshes that may be generated at runtime
 
-	Transform transform;
+	glm::mat4 modelMatrix = glm::mat4(1.0f); // precomputed model matrix
 
 	GLenum primitive = 0; // if 0, use mesh primitive
 
@@ -83,9 +83,6 @@ struct Renderable
 	int16_t zOrder = 0;
 	TextureManager::Handle textureHandle;
 	glm::vec4 uvRect = glm::vec4(0.f, 0.f, 1.f, 1.f); // x, y, width, height in uv space
-	glm::vec2 relativePosition = { 0.5f, 0.5f };
-	glm::vec2 relativeSize = { 1.f, 1.f };
-	glm::vec2 anchorPoint = { 0.5f, 0.5f };
 	
 
 	Renderable() = default;

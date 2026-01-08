@@ -4,6 +4,7 @@
 enum class CameraType : uint8_t
 {
 	FLYING_CAMERA = 0,
+	ORBIT_CAMERA = 1,
 };
 
 struct CameraComponent

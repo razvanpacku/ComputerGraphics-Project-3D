@@ -24,4 +24,15 @@ namespace TransformFunctions {
 	glm::vec3 DecomposeScale(const glm::mat4& matrix);
 
 	void Decompose(TransformComponent& transformComponent, const glm::mat4& localMatrix);
+
+	glm::mat4 UIComputeLocal(
+		const glm::vec2& pixelPos,
+		const glm::vec2& relativePos,
+		const glm::vec2& pixelSize,
+		const glm::vec2& relativeSize,
+		float rotation,
+		const glm::vec2& anchorPoint,
+		const glm::vec2& parentWorldRelSize,
+		const glm::vec2& screenSize
+	);
 }

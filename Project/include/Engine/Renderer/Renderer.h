@@ -30,8 +30,8 @@ public:
 	void Render();
 
 	// =================================================
-	void Submit(const Renderable& r) { renderQueue.Push(r); }
-	void Submit(const std::vector<Renderable>& rs) { renderQueue.Push(rs); }
+	void Submit(const Renderable& r);
+	void Submit(const std::vector<Renderable>& rs);
 
 	void SetRenderCamera(IRenderCamera* camera) { renderCamera = camera; }
 	void UpdateLighting(LightingUBO* light = nullptr);
@@ -60,7 +60,6 @@ private:
 	// --- Rendering functions ---
 	void Clear() const;
 	void UpdateCameraUBOs();
-	void GetRenderables();
 	void RenderFrame();
 	void ClearQueue() { renderQueue.Clear(); }
 
@@ -82,11 +81,7 @@ private:
 		return renderCamera->GetProjectionMatrix();
 	}
 	glm::mat4 GetGUIViewMatrix() const {
-		return glm::ortho(0.f, 1.f, 0.f, 1.f, -1.f, 1.f);
+		return glm::ortho(-0.5f, 0.5f, -0.5f, 0.5f, -1.f, 1.f);
 	}
-
-	// Temporary functions
-	void Initialize();
-	void Cleanup();
 };
 

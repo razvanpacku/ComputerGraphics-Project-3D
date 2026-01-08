@@ -90,6 +90,7 @@ private:
 	void SetupDefaultSystems(EngineServices services);
 
 	friend class Entity;
+	friend class ISystem;
 };
 
 #include "Entity.h"

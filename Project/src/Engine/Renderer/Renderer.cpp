@@ -8,25 +8,17 @@
 #include "Engine/Resources/UboDefs.h"
 #include "Engine/Renderer/LightMath.h"
 
-#include "Engine/Renderer/RenderableProvider//ModelRenderableProvider.h"
 #include "Engine/Renderer/RenderableProvider/MeshRenderableProvider.h"
-#include "Engine/Renderer/RenderableProvider/GUIRenderableProvider.h"
-#include "Engine/Renderer/RenderableProvider/TextRenderableProcider.h"
 #include "Engine/Renderer/BatchBuilder.h"
 #include "Engine/Renderer/Culling/Frustum.h"
+
+#include "Engine/DataStructures/TransformFunctions.h"
 
 // temporary camera controller until entity system is done to fetch cameraController from camera entity
 #include "Engine/Controllers/FlyingCameraController.h"
 
 #include <iostream>
 #include <algorithm>
-
-// temporary variables, functions and objects for testing
-std::vector<Renderable> tempRenderables;
-std::vector<Renderable> boundingBoxes;
-std::vector<Renderable> fpsText;
-#define ASTEROID_COUNT 1000
-float angle = 0.0f;
 
 Renderer::Renderer(App& app) : app(app), _rm(ResourceManager::Get())
 {
@@ -45,93 +37,10 @@ Renderer::Renderer(App& app) : app(app), _rm(ResourceManager::Get())
 		});
 
 	LightMath::GetCascadeSplits(nearPlane, farPlane, 6, 1, cascadeSplits);
-
-	Initialize();
 }
 
 Renderer::~Renderer()
 {
-	Cleanup();
-}
-
-void Renderer::Initialize(void)
-{
-	auto& _rm = ResourceManager::Get();
-
-	auto* modell = _rm.models.Get("asteroid");
-	Transform t = {
-		glm::vec3(0.0f, -1.0f, 0.0f),
-		glm::quat(glm::vec3(0.0f, glm::radians(angle), 0.0f)),
-		glm::vec3(1.f)
-	};
-	ModelRenderableProvider modelProvider;
-	modelProvider.model = modell;
-	modelProvider.transform = t;
-	modelProvider.GenerateRenderables(tempRenderables);
-
-	// this model will generate only one renderable
-	// fill tempRenderables with copies of it for testing, with different positions
-	for (int i = 0; i < ASTEROID_COUNT; i++) {
-		Renderable r = tempRenderables[0];
-		//r.transform.position = glm::vec3((i % 10) * 2 - 9.0f, -1.0f, (i / 10) * 2 - 9.0f);
-
-		//give each ateroid a random position similar to a asteroid ring
-		float angle = (float)(rand() % 360);
-		float distance = 5.0f + (float)(rand() % 1000) / 100.0f; // between 5.0 and 15.0
-		r.transform.position = glm::vec3(
-			cos(glm::radians(angle)) * distance,
-			((float)(rand() % 200) / 100.0f) - 1.0f, // between -1.0 and 1.0
-			sin(glm::radians(angle)) * distance
-		);
-
-		// random rotation
-		r.transform.rotation = glm::quat(glm::vec3(
-			glm::radians((float)(rand() % 360)),
-			glm::radians((float)(rand() % 360)),
-			glm::radians((float)(rand() % 360))
-		));
-
-		// give each asteroid slight random scaling variation
-		r.transform.scale = glm::vec3(0.1f + (float)(rand() % 100) / 500.0f);
-
-		if(i) tempRenderables.push_back(r);
-		else tempRenderables[0] = r; // first one is already in the vector
-	}
-
-	modelProvider.model = _rm.models.Get("rocket");
-	modelProvider.transform = {
-		glm::vec3(0.0f, 0.0f, 0.0f),
-		glm::quat(glm::vec3(0.0f, 0.0f, 0.0f)),
-		glm::vec3(0.2f)
-	};
-	modelProvider.GenerateRenderables(tempRenderables);
-	{
-		MeshRenderableProvider meshProvider;
-		meshProvider.meshHandle = _rm.meshes.GetHandle("primitive/quad");
-		meshProvider.materialHandle = _rm.materials.GetHandle("matte");
-		meshProvider.transform = {
-			glm::vec3(-20.0f, 0.0f, 0.0f),
-			glm::quat(glm::vec3(0.0f, glm::radians(90.0f), 0.0f)),
-			glm::vec3(100.0f, 100.0f, 1.0f)
-		};
-		meshProvider.GenerateRenderables(tempRenderables);
-	}
-	/*
-	{
-		GUIRederableProvider guiProvider;
-		guiProvider.materialHandle = _rm.materials.GetHandle("guiBase");
-		guiProvider.textureHandle = _rm.textures.GetHandle("dev2.png");
-		guiProvider.transform = {
-			glm::vec3(0.0f, 0.0f, 0.0f),
-			glm::quat(glm::vec3(0.0f, 0.0f, glm::radians(45.f))),
-			glm::vec3(256.f, 256.f, 1.0f)
-		};
-		guiProvider.relativeSize = glm::vec4(0.0f);
-		guiProvider.relativePosition = glm::vec2(0.0f, 1.0f);
-		guiProvider.anchorPoint = glm::vec2(0.0f, 1.0f);
-		guiProvider.GenerateRenderables(tempRenderables);
-	}
-	*/
 }
 
 void Renderer::UpdateLighting(LightingUBO* light)
@@ -146,13 +55,14 @@ void Renderer::UpdateLighting(LightingUBO* light)
 
 void Renderer::Render()
 {
+
 	Clear();
 
 	UpdateCameraUBOs();
-	GetRenderables();
+
 	RenderFrame();
 	ClearQueue();
-	glFlush();
+	//glFlush();
 }
 
 void Renderer::Clear() const
@@ -184,78 +94,65 @@ void Renderer::UpdateCameraUBOs() {
 	renderQueue.SetViewFrustum(frustrum);
 }
 
-void Renderer::GetRenderables() {
-	auto& _rm = ResourceManager::Get();
-	angle += 90.f * App::Get().DeltaTime();
-
-	for (size_t i = 0; i < ASTEROID_COUNT; i++)
-	{
-		auto& r = tempRenderables[i];
-		// make the ring of asteroids slowly rotate, based on their distance from center
-		float distance = glm::length(glm::vec2(r.transform.position.x, r.transform.position.z));
-		float rotationSpeed = 100.0f / (distance * distance); // closer asteroids rotate faster
-		// update position based on rotation around Y axis
-		float currentAngle = glm::degrees(atan2(r.transform.position.z, r.transform.position.x));
-		float deltaAngle = rotationSpeed * App::Get().DeltaTime();
-		currentAngle += deltaAngle;
-		r.transform.position.x = cos(glm::radians(currentAngle)) * distance;
-		r.transform.position.z = sin(glm::radians(currentAngle)) * distance;
-
-		// rotate each asteroid on y axis, matching ring rotation speed
-		glm::quat deltaQuat = glm::quat(glm::vec3(0.0f, glm::radians(-deltaAngle), 0.0f));
-		r.transform.rotation = deltaQuat * r.transform.rotation;
-
-	}
-
-	{
-		fpsText.clear();
-		int fps = static_cast<int>(1.0f / App::Get().DeltaTime());
-		TextRenderableProvier textProvider;
-		std::string text = "FPS: " + std::to_string(fps);
-		textProvider.text = text;
-		textProvider.pixelScale = glm::vec2(128.f, 16.f);
-		textProvider.rotation = glm::quat(glm::vec3(0.f));
-		textProvider.anchorPoint = glm::vec2(0.5f, 1.0f);
-		textProvider.relativePosition = glm::vec2(0.5f, 1.0f);
-		textProvider.GenerateRenderables(fpsText);
-		renderQueue.Push(fpsText);
-	}
-
-	// in boundingBoxes generate bounding boxes using the bounding_box mesh for each renderable
-	if (showBoundingBoxes) {
-		boundingBoxes.clear();
-		MeshRenderableProvider meshProvider;
-		meshProvider.meshHandle = _rm.meshes.GetHandle("primitive/bounding_box");
-		meshProvider.materialHandle = _rm.materials.GetHandle("boundingBox");
-		for (size_t i = 0; i < tempRenderables.size(); i++) {
-			auto& r = tempRenderables[i];
-			if (!r.hasBounds) continue;
-
-			glm::mat4 modelMatrix = r.transform.GetModelMatrix();
-			BoundingBox transformedAABB = TransformAABB(r.aabb, modelMatrix);
-
-			meshProvider.transform.position = (transformedAABB.min + transformedAABB.max) * 0.5f;
-
-			meshProvider.transform.scale = transformedAABB.max - transformedAABB.min;
-
-			meshProvider.GenerateRenderables(boundingBoxes);
-		}
-		renderQueue.Push(boundingBoxes);
-	}
-
-	renderQueue.Push(tempRenderables);
-}
-
 void Renderer::RenderFrame() {
 	DrawShadowPass();
 	DrawMainPass();
 }
 
-void Renderer::Cleanup(void)
+// =================================================
+// Submit functions
+// =================================================
+void Renderer::Submit(const Renderable& r)
 {
+	renderQueue.Push(r);
+
+	if(showBoundingBoxes && r.hasBounds)
+	{
+		MeshRenderableProvider meshProvider;
+		meshProvider.meshHandle = _rm.meshes.GetHandle("primitive/bounding_box");
+		meshProvider.materialHandle = _rm.materials.GetHandle("boundingBox");
+		glm::mat4 modelMatrix = r.modelMatrix;
+		BoundingBox transformedAABB = TransformAABB(r.aabb, modelMatrix);
+
+		Transform t;
+		t.position = (transformedAABB.min + transformedAABB.max) * 0.5f;
+		t.scale = transformedAABB.max - transformedAABB.min;
+		meshProvider.modelMatrix = t.GetModelMatrix();
+
+		std::vector<Renderable> boxRenders;
+		meshProvider.GenerateRenderables(boxRenders);
+		renderQueue.Push(boxRenders);
+	}
 }
 
-// =================================================
+void Renderer::Submit(const std::vector<Renderable>& rs)
+{
+	renderQueue.Push(rs);
+
+	if(showBoundingBoxes)
+	{
+		std::vector<Renderable> boxRenders;
+		MeshRenderableProvider meshProvider;
+		meshProvider.meshHandle = _rm.meshes.GetHandle("primitive/bounding_box");
+		meshProvider.materialHandle = _rm.materials.GetHandle("boundingBox");
+		for (const auto& r : rs)
+		{
+			if(!r.hasBounds) continue;
+			glm::mat4 modelMatrix = r.modelMatrix;
+			BoundingBox transformedAABB = TransformAABB(r.aabb, modelMatrix);
+
+			Transform t;
+			t.position = (transformedAABB.min + transformedAABB.max) * 0.5f;
+			t.scale = transformedAABB.max - transformedAABB.min;
+			meshProvider.modelMatrix = t.GetModelMatrix();
+
+			meshProvider.GenerateRenderables(boxRenders);
+		}
+		renderQueue.Push(boxRenders);
+	}
+}
+
+// 
 // Draw passes
 // =================================================
 
@@ -323,6 +220,13 @@ void Renderer::DrawShadowPass()
 void Renderer::DrawMainPass()
 {
 	auto transparentList = renderQueue.GetSortedLayer(RenderLayer::Transparent);
+	//update sortDistance for transparent items
+	for(auto& renderable : transparentList)
+	{
+		glm::vec3 camPos = renderCamera->GetPosition();
+		glm::vec3 objPos = TransformFunctions::DecomposePosition(renderable.item.modelMatrix);
+		renderable.item.sortDistance = glm::length(camPos - objPos);
+	}
 	//sort back to front using renderable::sortDistance
 	std::stable_sort(transparentList.begin(), transparentList.end(),
 		[](const RenderSubmission& a, const RenderSubmission& b) {
@@ -362,8 +266,19 @@ void Renderer::DrawList(const std::vector<RenderSubmission>& submissions)
 		glEnable(GL_CULL_FACE);
 	}
 	else {
+
+		if (layer == RenderLayer::Transparent)
+		{
+			glDepthMask(GL_FALSE);
+		}
+
 		for (const auto& submission : submissions) {
 			DrawSubmission(submission);
+		}
+
+		if (layer == RenderLayer::Transparent)
+		{
+			glDepthMask(GL_TRUE);
 		}
 	}
 }

@@ -48,4 +48,44 @@ namespace TransformFunctions {
 		transformComponent.rotation = DecomposeRotation(localMatrix);
 		transformComponent.scale = DecomposeScale(localMatrix);
 	}
+
+	// Awful, *awful*, very bad, very vibecoded; Awful.
+	glm::mat4 UIComputeLocal(
+		const glm::vec2& pixelPos,
+		const glm::vec2& relativePos,
+		const glm::vec2& pixelSize,
+		const glm::vec2& relativeSize,
+		float rotation,
+		const glm::vec2& anchorPoint,
+		const glm::vec2& parentWorldRelSize,
+		const glm::vec2& screenSize
+	) {
+		// Compute final size in normalized space
+		glm::vec2 size = relativeSize + pixelSize / (screenSize * parentWorldRelSize);
+
+		// Compute the position in normalized space (anchor point will be placed here)
+		glm::vec2 pos = relativePos + pixelPos / (screenSize * parentWorldRelSize) - glm::vec2(0.5f);
+
+		//  Compute pivot offset in local quad space [-0.5,0.5]
+		glm::vec2 pivotOffset = (anchorPoint - glm::vec2(0.5f));
+
+		// Translate so the anchor sits at 'pos'
+		glm::mat4 T = glm::translate(glm::mat4(1.0f), glm::vec3(pos - pivotOffset, 0.0f));
+
+		float aspect = (screenSize.x / screenSize.y) * (parentWorldRelSize.x / parentWorldRelSize.y);
+
+		glm::mat4 aspectFix = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, aspect, 1.0f));
+		glm::mat4 invAspectFix = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f / aspect, 1.0f));
+
+		// Rotation around anchor (pivotOffset already applied in T)
+		glm::mat4 R =
+			glm::translate(glm::mat4(1.0f), glm::vec3(pivotOffset, 0.f)) *
+			aspectFix *
+			glm::rotate(glm::mat4(1.0f), rotation, glm::vec3(0, 0, 1)) *
+			invAspectFix *
+			glm::scale(glm::mat4(1.0f), glm::vec3(size, 1.0f)) *
+			glm::translate(glm::mat4(1.0f), glm::vec3(-pivotOffset, 0.f));
+
+		return T * R;
+	}
 }

@@ -8,10 +8,17 @@
 #include "NameComponent.h"
 #include "HierarchyComponent.h"
 #include "InternalNameComponent.h"
+#include "TransformComponent.h"
+#include "CameraComponent.h"
+#include "LightComponent.h"
+#include "RenderableComponent.h"
 
 struct RootComponent {}; // An empty component to mark the root entity of a scene graph.
 
 struct TransformDirtyTag {}; // An empty component to mark entities whose transform needs updating.
+struct UITransformDirtyTag {}; // An empty component to mark UI entities whose transform needs updating.
+
+struct TargetEntityTag {}; // An empty component to mark the entity used as a target by the camera.
 
 // Internal components are components that certain entities must have and certain musn't have, so the user should not be able to add or remove them directly.
 template<typename T>

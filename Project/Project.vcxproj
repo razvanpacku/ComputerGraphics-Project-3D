@@ -19,6 +19,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Engine\Controllers\OrbitCameraController.cpp" />
+    <ClCompile Include="src\Engine\SceneGraph\Entities\ParticleEmitter.cpp" />
+    <ClCompile Include="src\Demo\Entities\AsteroidRing.cpp" />
+    <ClCompile Include="src\Engine\SceneGraph\Entities\BasePart.cpp" />
+    <ClCompile Include="src\Engine\SceneGraph\Entities\ModelEntity.cpp" />
+    <ClCompile Include="src\Engine\SceneGraph\Entities\RenderEntity.cpp" />
     <ClCompile Include="src\Engine\DataStructures\TransformFunctions.cpp" />
     <ClCompile Include="src\Engine\SceneGraph\Entities\Light.cpp" />
     <ClCompile Include="src\Engine\SceneGraph\Systems\RenderSystem.cpp" />
@@ -56,8 +62,16 @@
     <ClCompile Include="src\Engine\SceneGraph\ISystem.cpp" />
     <ClCompile Include="src\Engine\SceneGraph\Entities\TransformEntity.cpp" />
     <ClCompile Include="src\Engine\SceneGraph\Systems\TransformSystem.cpp" />
+    <ClCompile Include="src\Engine\SceneGraph\Entities\UITransformEntity.cpp" />
+    <ClCompile Include="src\Engine\SceneGraph\Systems\UITransformSystem.cpp" />
+    <ClCompile Include="src\Engine\SceneGraph\Entities\UIElement.cpp" />
+    <ClCompile Include="src\Engine\SceneGraph\Entities\Textbox.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\Demo\Entities\AsteroidRing.h" />
+    <ClInclude Include="include\Engine\Components\UITransformComponent.h" />
+    <ClInclude Include="include\Engine\SceneGraph\Entities\BasePart.h" />
+    <ClInclude Include="include\Engine\Components\RenderableComponent.h" />
     <ClInclude Include="include\Engine\SceneGraph\Entities\Anchor.h" />
     <ClInclude Include="include\Engine\Components\CameraComponent.h" />
     <ClInclude Include="include\Engine\DataStructures\TransformFunctions.h" />
@@ -81,7 +95,7 @@
     <ClInclude Include="include\Engine\Renderer\RenderableProvider\GUIRenderableProvider.h" />
     <ClInclude Include="include\Engine\Renderer\RenderableProvider\MeshRenderableProvider.h" />
     <ClInclude Include="include\Engine\Renderer\RenderableProvider\ModelRenderableProvider.h" />
-    <ClInclude Include="include\Engine\Renderer\RenderableProvider\TextRenderableProcider.h" />
+    <ClInclude Include="include\Engine\Renderer\RenderableProvider\TextRenderableProvider.h" />
     <ClInclude Include="include\Engine\Resources\Ubo.h" />
     <ClInclude Include="include\Engine\Resources\UboDefs.h" />
     <ClInclude Include="include\Engine\Resources\UniformSetter.h" />
@@ -484,6 +498,15 @@
     <ClInclude Include="include\Engine\SceneGraph\Entities\Light.h" />
     <ClInclude Include="include\Engine\SceneGraph\Entities\TransformEntity.h" />
     <ClInclude Include="include\Engine\SceneGraph\Systems\TransformSystem.h" />
+    <ClInclude Include="include\Engine\SceneGraph\Entities\RenderEntity.h" />
+    <ClInclude Include="include\Engine\SceneGraph\Entities\ModelEntity.h" />
+    <ClInclude Include="include\Engine\SceneGraph\Entities\ParticleEmitter.h" />
+    <ClInclude Include="include\Engine\Controllers\OrbitCameraController.h" />
+    <ClInclude Include="include\Engine\SceneGraph\Systems\TransformSystemBase.h" />
+    <ClInclude Include="include\Engine\SceneGraph\Entities\UITransformEntity.h" />
+    <ClInclude Include="include\Engine\SceneGraph\Systems\UITransformSystem.h" />
+    <ClInclude Include="include\Engine\SceneGraph\Entities\UIElement.h" />
+    <ClInclude Include="include\Engine\SceneGraph\Entities\Textbox.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="include\external\assimp\color4.inl" />

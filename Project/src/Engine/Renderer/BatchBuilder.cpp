@@ -53,7 +53,7 @@ void BatchBuilder::InitInstanceData(RenderSubmission& cmd)
 	else cmd.item.instanceData = new InstanceDataGUI();
 	cmd.item.instanceData->count = 1;
 	if (cmd.item.layer != RenderLayer::GUI) {
-		dynamic_cast<InstanceData*>(cmd.item.instanceData)->modelMatrices.emplace_back(cmd.item.transform.GetModelMatrix());
+		dynamic_cast<InstanceData*>(cmd.item.instanceData)->modelMatrices.emplace_back(cmd.item.modelMatrix);
 	}
 	else {
 		auto& win = AppAttorney::GetWindow(App::Get());
@@ -61,7 +61,8 @@ void BatchBuilder::InitInstanceData(RenderSubmission& cmd)
 		float screenHeight = static_cast<float>(win.GetHeight());
 		auto* instanceData = dynamic_cast<InstanceDataGUI*>(cmd.item.instanceData);
 
-		instanceData->guiData.emplace_back(GUIData{ cmd.item.uvRect, cmd.item.transform.GetGUIModelMatrix(cmd.item.relativePosition, cmd.item.relativeSize, cmd.item.anchorPoint, screenWidth, screenHeight) });
+		//instanceData->guiData.emplace_back(GUIData{ cmd.item.uvRect, cmd.item.transform.GetGUIModelMatrix(cmd.item.relativePosition, cmd.item.relativeSize, cmd.item.anchorPoint, screenWidth, screenHeight) });
+		instanceData->guiData.emplace_back(GUIData{ cmd.item.uvRect, cmd.item.modelMatrix });
 	}
 }
 
@@ -102,7 +103,7 @@ void BatchBuilder::AppendInstanceData(RenderSubmission& batch, const Renderable&
 
 	batch.item.instanceData->count += 1;
 	if (batch.item.layer != RenderLayer::GUI) {
-		dynamic_cast<InstanceData*>(batch.item.instanceData)->modelMatrices.emplace_back(r.transform.GetModelMatrix());
+		dynamic_cast<InstanceData*>(batch.item.instanceData)->modelMatrices.emplace_back(r.modelMatrix);
 	}
 	else {
 		auto& win = AppAttorney::GetWindow(App::Get());
@@ -110,6 +111,7 @@ void BatchBuilder::AppendInstanceData(RenderSubmission& batch, const Renderable&
 		float screenHeight = static_cast<float>(win.GetHeight());
 		auto* instanceData = dynamic_cast<InstanceDataGUI*>(batch.item.instanceData);
 
-		instanceData->guiData.emplace_back(GUIData{r.uvRect,  r.transform.GetGUIModelMatrix(r.relativePosition, r.relativeSize, r.anchorPoint, screenWidth, screenHeight)});
+		//instanceData->guiData.emplace_back(GUIData{r.uvRect,  r.transform.GetGUIModelMatrix(r.relativePosition, r.relativeSize, r.anchorPoint, screenWidth, screenHeight)});
+		instanceData->guiData.emplace_back(GUIData{ r.uvRect,  r.modelMatrix});
 	}
 }

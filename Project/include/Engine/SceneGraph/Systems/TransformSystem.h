@@ -1,25 +1,16 @@
 #pragma once
 #include <entt/entt.hpp>
-#include "../ISystem.h"
+#include "TransformSystemBase.h"
 
 #include "Engine/Components/TransformComponent.h"
 
-class TransformSystem : public ISystem
+class TransformSystem : public TransformSystemBase<TransformComponent, TransformDirtyTag>
 {
 public:
 	TransformSystem(Scene* scene, int16_t order = 0, entt::registry* registry = nullptr);
 	~TransformSystem() override = default;
-	void OnUpdate(double deltaTime) override;
-
-	bool MarkDirty(entt::entity entity);
-
-	void UpdateTransform(entt::entity entity);
-	void UpdateEntity(entt::entity entity);
-
+	void UpdateTransform(entt::entity entity) override;
 	virtual std::string GetName() const override { return "TransformSystem"; }
-private:
-	entt::registry* registry = nullptr;
 
-	void UpdateSubtree(entt::entity entity);
+	void SetTarget(entt::entity entity); // sets the target entity for the camera to follow
 };
-

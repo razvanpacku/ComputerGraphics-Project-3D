@@ -130,6 +130,12 @@ void Scene::AddOrMoveEntity(Entity& entity, const Entity* const parent)
             TransformFunctions::Decompose(transformC, newLocalMatrix);
 			transformC.localDirty = false;
         }
+
+		// If it has a UITransformComponent, mark it dirty to recalculate world matrix
+        if (registry.all_of<UITransformComponent>(entity.handle)) {
+            auto& uiTransformC = registry.get<UITransformComponent>(entity.handle);
+            uiTransformC.localDirty = true;
+		}
     }
 
     // Attach to new parent
@@ -357,14 +363,12 @@ void Scene::PrintHierarchy() const {
             Entity* entity = it->second;
             std::cout << *entity;
 
-			// temp check if it has transform component and print its local position, and if it has the dirty tag or the localDirty flag set
-			auto* transformC = registry.try_get<TransformComponent>(handle);
-			bool dirty = registry.all_of<TransformDirtyTag>(handle);
+			// temp check if it has ui transform component and print its local position, and if it has the dirty tag or the localDirty flag set
+			auto* transformC = registry.try_get<UITransformComponent>(handle);
+			bool dirty = registry.all_of<UITransformDirtyTag>(handle);
             if (transformC) {
-                std::cout << " ("
-                          << transformC->position.x << ", "
-                          << transformC->position.y << ", "
-					<< transformC->position.z << " --- " << transformC->localDirty << ", " << dirty << ")";
+				std::cout << " [UITransform pos: (" << transformC->position.x << ", " << transformC->position.y << ")" 
+					<< (dirty || transformC->localDirty ? ", dirty" : "") << "]";
             }
 
             if (hier && hier->firstChild != entt::null) {
@@ -414,6 +418,7 @@ void Scene::SetupInternalEntities()
 
 void Scene::SetupDefaultSystems(EngineServices services)
 {
-	AddSystem<RenderSystem>(100, services.renderer);
+	AddSystem<RenderSystem>(100, services.renderer, &registry);
 	AddSystem<TransformSystem>(50, &registry);
+    AddSystem<UITransformSystem>(51, &registry);
 }

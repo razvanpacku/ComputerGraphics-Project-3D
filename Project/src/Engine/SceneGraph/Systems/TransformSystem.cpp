@@ -3,62 +3,15 @@
 #include "Engine/Components/Components.h"
 #include "Engine/DataStructures/TransformFunctions.h"
 
+#include "Engine/SceneGraph/Systems/RenderSystem.h"
+
 // ======================================================
 // TransformSystem
 // ======================================================
 
 TransformSystem::TransformSystem(Scene* scene, int16_t order, entt::registry* registry)
-	: ISystem(scene, order), registry(registry)
+	: TransformSystemBase(scene, order, registry)
 {
-	runOnStartup = true;
-}
-
-void TransformSystem::OnUpdate(double deltaTime)
-{
-	// Get the root entities with TransformDirtyTag
-	// We do this by checking for an entity with TransformDirtyTag if their parent is null or does not have TransformDirtyTag
-	auto view = registry->view<TransformDirtyTag, TransformComponent>();
-	for(auto entity : view)
-	{
-		auto* entH = registry->try_get<HierarchyComponent>(entity);
-		bool isRootDirty =
-			!entH ||
-			entH->parent == entt::null ||
-			!registry->all_of<TransformDirtyTag, TransformComponent>(entH->parent);
-		if(isRootDirty)
-		{
-			// this is a root dirty entity, start updating from here
-			UpdateSubtree(entity);
-		}
-	}
-}
-
-bool TransformSystem::MarkDirty(entt::entity entity)
-{
-	auto* transformC = registry->try_get<TransformComponent>(entity);
-	if(!transformC)
-	{
-		return false;
-	}
-	bool dirty = registry->all_of<TransformDirtyTag>(entity);
-
-	if (dirty) {
-		// already dirty, no need to do anything
-		return true;
-	}
-
-	registry->emplace<TransformDirtyTag>(entity);
-
-	auto& hierarchyC = registry->get<HierarchyComponent>(entity);
-	// traverse descendants recursively and mark them dirty
-	// children with no TransformComponent or that are already dirty are skipped by the code above
-	entt::entity child = hierarchyC.firstChild;
-	while (child != entt::null) {
-		MarkDirty(child);
-		auto& childH = registry->get<HierarchyComponent>(child);
-		child = childH.nextSibling;
-	}
-	return true;
 }
 
 void TransformSystem::UpdateTransform(entt::entity entity)
@@ -88,65 +41,37 @@ void TransformSystem::UpdateTransform(entt::entity entity)
 			transformC->worldMatrix = transformC->localMatrix;
 		}
 
+		// check if entity is renderable and update its transforms
+		auto* renderableC = registry->try_get<RenderableComponent>(entity);
+		if (renderableC) {
+			renderableC->UpdateTransform(transformC->worldMatrix);
+		}
+
+		// If this entity is the target entity, notify the RenderSystem to update the camera position
+		if (registry->all_of<TargetEntityTag>(entity)) {
+			auto* renderSystem = GetSystem<RenderSystem>();
+			if (renderSystem) {
+				// extract position from worldMatrix
+				glm::vec3 worldPosition = glm::vec3(transformC->worldMatrix[3]);
+				renderSystem->UpdateTargetCamera(worldPosition);
+			}
+		}
+
 
 		// Remove dirty tag
 		registry->remove<TransformDirtyTag>(entity);
 	}
 }
 
-void TransformSystem::UpdateEntity(entt::entity entity)
+void TransformSystem::SetTarget(entt::entity entity)
 {
-	// check if entity is dirty
-	if (!registry->all_of<TransformDirtyTag, TransformComponent>(entity)) {
-		// not dirty, nothing to do
-		return;
+	// First, remove TargetEntityTag from any existing target entity
+	auto view = registry->view<TargetEntityTag>();
+	for (auto entt : view) {
+		registry->remove<TargetEntityTag>(entt);
 	}
-
-	std::vector <entt::entity> path;
-
-	// first, get the root of the subtree that contains this entity by traversing up the hierarchy
-	entt::entity current = entity;
-	path.push_back(current);
-	while (true) {
-		auto* hierC = registry->try_get<HierarchyComponent>(current);
-		// check if parent is dirty
-		if (!hierC || hierC->parent == entt::null ||
-			!registry->all_of<TransformDirtyTag, TransformComponent>(hierC->parent))
-		{
-			break;
-		}
-		path.push_back(hierC->parent);
-		current = hierC->parent;
-	}
-
-	// For efficiency, we only update the path from the root to the entity, splitting the original subtree into smaller parts
-	// If another child of the root needs to be updated later, its parent will have already been updated, so we can just update it directly
-	for (auto it = path.rbegin(); it != path.rend(); ++it) {
-		UpdateTransform(*it);
-	}
-}
-
-void TransformSystem::UpdateSubtree(entt::entity entity)
-{
-	// Done iteratively using a stack
-	std::vector<entt::entity> stack;
-	stack.push_back(entity);
-
-	while (!stack.empty()) {
-		// Update parents first
-		entt::entity current = stack.back();
-		stack.pop_back();
-
-		UpdateTransform(current);
-
-		// Push children to stack
-		auto* hier = registry->try_get<HierarchyComponent>(current);
-		if (hier) {
-			entt::entity child = hier->firstChild;
-			while (child != entt::null) {
-				stack.push_back(child);
-				child = registry->get<HierarchyComponent>(child).nextSibling;
-			}
-		}
+	// Now, set the new target entity (if it has a TransformComponent)
+	if (registry->all_of<TransformComponent>(entity)) {
+		registry->emplace<TargetEntityTag>(entity);
 	}
 }

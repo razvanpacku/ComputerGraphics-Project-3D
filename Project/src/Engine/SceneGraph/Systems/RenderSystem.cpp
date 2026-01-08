@@ -1,8 +1,8 @@
 #include "Engine/SceneGraph/Systems/RenderSystem.h"
 #include "Engine/Renderer/Renderer.h"
 
-RenderSystem::RenderSystem(Scene* scene, int16_t order, Renderer* renderer)
-	: ISystem(scene, order), renderer(renderer)
+RenderSystem::RenderSystem(Scene* scene, int16_t order, Renderer* renderer, entt::registry* registry)
+	: ISystem(scene, order), renderer(renderer), registry(registry)
 {
 	runOnStartup = true;
 
@@ -37,4 +37,21 @@ void RenderSystem::OnUpdate(double deltaTime)
 		renderer->UpdateLighting(lightComponent);
 		lightComponent->dirty = false;
 	}
+
+	// Get RenderableComponents
+	auto view = registry->view<RenderableComponent>();
+
+	// Update each renderableComponent and submit to renderer
+	for (auto entity : view)
+	{
+		auto& renderableC = view.get<RenderableComponent>(entity);
+		renderableC.UpdateRenderables(deltaTime);
+		renderer->Submit(renderableC.GetRenderables());
+	}
+}
+
+void RenderSystem::UpdateTargetCamera(glm::vec3 targetPosition)
+{
+	auto* camera = dynamic_cast<Camera*>(scene->FindInternalEntity("Camera"));
+	camera->SetPosition(targetPosition);
 }

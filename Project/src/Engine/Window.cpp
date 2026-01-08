@@ -148,9 +148,6 @@ void Window::FramebufferSizeCallback(GLFWwindow* window, int width, int height)
 	}
 	win.framebufferHeight = static_cast<uint16_t>(height);
 	win.framebufferWidth = static_cast<uint16_t>(width);
-
-	AppAttorney::GetRenderer(app).Render();
-	win.SwapBuffers();
 }
 
 MouseMode Window::GetMouseMode() const {

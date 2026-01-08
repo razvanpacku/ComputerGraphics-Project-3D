@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <string>
+#include <thread>
 
 //forward declarations
 class InputManager;
@@ -21,6 +22,8 @@ public:
 
 	double DeltaTime() const { return deltaTime; }
 
+	void RunLoop();
+	void EventLoop();
 	void Run();
 
 	uint16_t GetWindowWidth() const;

@@ -74,9 +74,10 @@ App& App::Get(const std::string& name, uint16_t width, uint16_t height)
 	return instance;
 }
 
-void App::Run()
+void App::RunLoop()
 {
-	while(!window->ShouldClose())
+	glfwMakeContextCurrent(window->GetNative());
+	while (!window->ShouldClose())
 	{
 		double currentFrame = glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
@@ -84,21 +85,40 @@ void App::Run()
 
 		InputManager::Get().Update();
 
-		if(firstFrame && scene)
-		{
-			deltaTime = 0.0;
-			firstFrame = false;
-		}
-		else if(!firstFrame && scene)
-		{
+		if (scene) {
+			if(firstFrame) {
+				deltaTime = 0.0;
+				firstFrame = false;
+			}
 			scene->Update(deltaTime);
 		}
 
 		renderer->Render();
 
 		window->SwapBuffers();
-		window->PollEvents();
 	}
+}
+
+void App::EventLoop()
+{
+	while (!window->ShouldClose())
+	{
+		window->PollEvents();
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	}
+}
+
+void App::Run()
+{
+	glfwMakeContextCurrent(nullptr);
+	// Thread runs update + render
+	std::thread gameThread([this]() { RunLoop(); });
+
+	// Main thread pumps events (blocks on resize but game keeps drawing)
+	EventLoop();
+
+	gameThread.join();
 }
 
 void App::SetScene(Scene* newScene)

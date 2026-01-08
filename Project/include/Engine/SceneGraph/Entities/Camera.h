@@ -21,6 +21,10 @@ public:
 	void SwitchCameraType(CameraType newType);
 	CameraType GetCameraType() const;
 
+	glm::vec3 GetPosition() const { return renderCamera->GetPosition(); }
+
+	void SetTarget(Entity* targetEntity);
+
 	// Sets the position of the camera.
 	void SetPosition(const glm::vec3& position) { renderCamera->SetPosition(position); }
 	// Sets the orientation of the camera using yaw and pitch angles.

@@ -9,7 +9,7 @@
 #define TEXTURE_FONT_COLS 16
 #define TEXTURE_FONT_ROWS 16
 
-class TextRenderableProvier : public IRendarableProvider
+class TextRenderableProvider : public IRendarableProvider
 {
 public:
 	std::string_view text;
@@ -38,7 +38,7 @@ public:
 			fontProvider = new GUIRederableProvider();
 			fontProvider->materialHandle = _rm.materials.GetHandle("guiBase");
 			fontProvider->textureHandle = _rm.textures.GetHandle("font.png");
-			fontProvider->anchorPoint = glm::vec2(0.f, 1.f);
+			//fontProvider->anchorPoint = glm::vec2(0.f, 1.f);
 		}
 
 		float charPx = TEXTURE_FONT_SIZE * fontSize;
@@ -147,8 +147,8 @@ private:
 		fontProvider->transform.position = rotatedPos;
 		fontProvider->transform.rotation = rotation;
 		fontProvider->transform.scale = glm::vec3(charPx, charPx, 1.f);
-		fontProvider->relativePosition = relativePosition;
-		fontProvider->relativeSize = { 0.f, 0.f };
+		//fontProvider->relativePosition = relativePosition;
+		//fontProvider->relativeSize = { 0.f, 0.f };
 
 		uint8_t asciiIndex = static_cast<uint8_t>(c);
 		uint8_t texCol = asciiIndex % TEXTURE_FONT_COLS;
@@ -165,4 +165,4 @@ private:
 	}
 };
 
-GUIRederableProvider* TextRenderableProvier::fontProvider = nullptr;
+GUIRederableProvider* TextRenderableProvider::fontProvider = nullptr;

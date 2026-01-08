@@ -8,7 +8,7 @@
 //
 // An entity that has physically exists in the scene and can be transformed
 // ================================================================
-class TransformEntity : public Entity
+class TransformEntity : public virtual Entity
 {
 public:
 	TransformEntity(const std::string& name = "");
@@ -28,7 +28,7 @@ public:
 	glm::vec3 GetGlobalPosition() const;
 	glm::quat GetGlobalRotation() const;
 	glm::vec3 GetGlobalScale() const;
-private:
-	TransformComponent* transformComponent;
+protected:
+	TransformComponent* transformComponent = nullptr;
 };
 

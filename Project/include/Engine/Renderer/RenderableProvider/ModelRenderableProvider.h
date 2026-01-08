@@ -7,10 +7,7 @@ class ModelRenderableProvider : public IRendarableProvider
 {
 public:
 	Model* model = nullptr;
-	Transform transform;
-
-	bool isTransparent = false;
-	glm::vec3 cameraPosition = glm::vec3(0.0f);
+	glm::mat4 modelMatrix = glm::mat4(1.0f);
 
 	void GenerateRenderables(std::vector<Renderable>& out) override
 	{
@@ -24,7 +21,9 @@ public:
 			Renderable renderable;
 			renderable.meshHandle = meshEntry.mesh;
 			renderable.materialHandle = meshEntry.material;
-			renderable.transform = transform;
+			renderable.modelMatrix = modelMatrix;
+
+			bool isTransparent = false;
 
 			Mesh* meshPtr = _mm.Get(meshEntry.mesh);
 			if (meshPtr)
@@ -32,21 +31,20 @@ public:
 				renderable.aabb = meshPtr->boundingBox;
 				renderable.hasBounds = true;
 
-				//check material to see if renderable should cast/receive shadows
+				//check material to see if renderable should cast/receive shadows and if it's transparent
 				auto* material = _mam.Get(meshEntry.material);
 				if(material){
 					renderable.castShadows = material->castShadows;
 					auto val = material->GetUniform<int>("receiveShadows");
 					renderable.receiveShadows = val.value_or(false);
+
+					auto transVal = material->GetUniform<int>("isTransparent");
+					isTransparent = transVal.value_or(0) != 0;
 				}
 			}
 
 			if(isTransparent)
 			{
-				// calculate distance from camera for sorting
-				glm::vec3 renderablePos = renderable.transform.position;
-				float distance = glm::length(cameraPosition - renderablePos);
-				renderable.sortDistance = distance;
 				renderable.layer = RenderLayer::Transparent;
 			}
 

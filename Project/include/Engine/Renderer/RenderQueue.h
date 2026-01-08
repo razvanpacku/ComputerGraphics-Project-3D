@@ -12,6 +12,8 @@
 class RenderQueue
 {
 public:
+	RenderQueue();
+
 	void Clear();
 
 	// Add a renderable to the queue (copy is stoed to allow temporary objects)
@@ -36,6 +38,7 @@ private:
 	uint64_t nextSubmitIndex = 1;
 
 	Frustum viewFrustum;
+	ShaderManager::ShaderHandle particleShaderHandle; // cached handle to the particle shader for special treatment, to not rotate bounding box
 
 };
 

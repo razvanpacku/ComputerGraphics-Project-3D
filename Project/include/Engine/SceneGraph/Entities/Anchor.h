@@ -1,5 +1,6 @@
 #pragma once
 #include "TransformEntity.h"
+#include "UITransformEntity.h"
 
 // ================================================================
 // Anchor
@@ -11,7 +12,22 @@ class Anchor : public TransformEntity
 {
 public:
 	Anchor(const std::string& name = "Anchor")
-		: TransformEntity(name)
+		: Entity(name), TransformEntity(name)
+	{
+	}
+};
+
+// ================================================================
+// UIAnchor
+//
+// Entity that represents an anchor point for UI elements. Essentially just a wrapper around UITransformEntity.
+// ================================================================
+
+class UIAnchor : public UITransformEntity
+{
+public:
+	UIAnchor(const std::string& name = "UIAnchor")
+		: Entity(name), UITransformEntity(name)
 	{
 	}
 };

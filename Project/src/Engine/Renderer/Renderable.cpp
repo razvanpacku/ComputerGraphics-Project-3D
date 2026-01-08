@@ -23,7 +23,6 @@ Renderable::Renderable(const Renderable& other) noexcept :
 	meshHandle(other.meshHandle),
 	materialHandle(other.materialHandle),
 	mesh(other.mesh),
-	transform(other.transform),
 	primitive(other.primitive),
 	aabb(other.aabb),
 	hasBounds(other.hasBounds),
@@ -35,9 +34,7 @@ Renderable::Renderable(const Renderable& other) noexcept :
 	zOrder(other.zOrder),
 	textureHandle(other.textureHandle),
 	uvRect(other.uvRect),
-	relativePosition(other.relativePosition),
-	relativeSize(other.relativeSize),
-	anchorPoint(other.anchorPoint)
+	modelMatrix(other.modelMatrix)
 {
 	// Note: shallow copy of mesh and instanceData pointers
 }
@@ -46,7 +43,6 @@ Renderable::Renderable(Renderable&& other) noexcept :
 	meshHandle(other.meshHandle),
 	materialHandle(other.materialHandle),
 	mesh(other.mesh),
-	transform(std::move(other.transform)),
 	primitive(other.primitive),
 	aabb(other.aabb),
 	hasBounds(other.hasBounds),
@@ -58,9 +54,7 @@ Renderable::Renderable(Renderable&& other) noexcept :
 	zOrder(other.zOrder),
 	textureHandle(other.textureHandle),
 	uvRect(other.uvRect),
-	relativePosition(other.relativePosition),
-	relativeSize(other.relativeSize),
-	anchorPoint(other.anchorPoint)
+	modelMatrix(other.modelMatrix)
 {
 	other.mesh = nullptr;
 	other.instanceData = nullptr;

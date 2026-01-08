@@ -18,7 +18,18 @@ public:
 	bool ShouldRunOnStartup() const { return runOnStartup; }
 	int16_t GetOrder() const { return order; }
 protected:
+	template<typename T>
+	T* const GetSystem() const;
+
 	Scene* const scene;
 	int16_t order;
 	bool runOnStartup = false;
 };
+
+#include "Scene.h"
+
+template<typename T>
+T* const ISystem::GetSystem() const
+{
+	return scene->GetSystem<T>();
+}
