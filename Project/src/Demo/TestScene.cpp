@@ -31,6 +31,23 @@ void TestScene::OnCreate()
 	fpsText->SetAnchorPoint({ 0.f, 1.f });
 	AddOrMoveEntity(*fpsText);
 
+	Textbox* rocketData = new Textbox("Fuel: \nCharge: \nStabilizing: ", "RocketData");
+	rocketData->SetRelativeScale({ 0.f,0.f });
+	rocketData->SetAbsoluteScaleOffset({ 512.f, 96.f });
+	rocketData->SetRelativePosition({ 0.5f, 0.f });
+	rocketData->SetAnchorPoint({ 0.5f, 0.f });
+	rocketData->SetFontSize(2.0f);
+	AddOrMoveEntity(*rocketData);
+
+	Textbox* bodyDistance = new Textbox("text", "BodyDistance");
+	bodyDistance->SetRelativeScale({ 0.f,0.f });
+	bodyDistance->SetAbsoluteScaleOffset({ 512.f,64.f });
+	bodyDistance->SetRelativePosition({ 0.5f, 1.f });
+	bodyDistance->SetAnchorPoint({ 0.5f, 1.f });
+	bodyDistance->SetFontSize(2.0f);
+	AddOrMoveEntity(*bodyDistance);
+
+
 	AsteroidRing* asteroidRing = new AsteroidRing("AsteroidRing");
 	asteroidRing->SetInnerRadius(350.f);
 	asteroidRing->SetOuterRadius(400.f);
@@ -95,8 +112,12 @@ void TestScene::OnUpdate(double deltaTime)
 
 	Rocket* rocket = dynamic_cast<Rocket*>(FindFirstDescendant("Rocket"));
 	rocket->Update(deltaTime);
+	Textbox* rocketData = dynamic_cast<Textbox*>(FindFirstDescendant("RocketData"));
+	rocketData->SetText("Fuel: " + std::to_string(static_cast<int>(rocket->GetFuel())) +
+		"kg\nCharge: " + std::to_string(static_cast<int>(rocket->GetCharge())) +
+		"W\nStabilizing: " + (rocket->IsStabilizing() ? "Yes" : "No"));
+
 	auto& rc1 = rocket->GetComponent<RigidBodyComponent>();
-	
 	auto& rc2 = planet->GetComponent<RigidBodyComponent>();
 	auto& rc3 = moon->GetComponent<RigidBodyComponent>();
 	glm::vec3 dir = glm::vec3(planet->GetGlobalPosition() - rocket->GetGlobalPosition());
@@ -107,5 +128,16 @@ void TestScene::OnUpdate(double deltaTime)
 	distance = glm::length(dir2);
 	force = (glm::normalize(dir2) * (rc1.mass * rc3.mass) / (distance * distance)) * 1.f;
 	rc1.AddForce(force);
+
+	Textbox* bodyDistance = dynamic_cast<Textbox*>(FindFirstDescendant("BodyDistance"));
+	{
+		int planetDistance = glm::length(planet->GetGlobalPosition() - rocket->GetGlobalPosition()) - 10.f;
+		int moonDistance = glm::length(moon->GetGlobalPosition() - rocket->GetGlobalPosition()) - 7.5f;
+
+		std::string body = (planetDistance < moonDistance) ? "Planet" : "Moon";
+		int distance = (planetDistance < moonDistance) ? planetDistance : moonDistance;
+
+		bodyDistance->SetText(body + "\n" + std::to_string(distance) + "m");
+	}
 	//rc2.AddForce(-force);
 }
