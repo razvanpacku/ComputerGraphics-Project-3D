@@ -8,6 +8,8 @@ struct ParticleInstanceData
 	glm::vec3 velocity;     // local-space velocity
 	float lifetime;         // remaining time
 	float maxLifetime;
+	glm::mat4 spawnPointMatrix; // world matrix at spawn time
+	bool detached = false; // whether the particle has detached from the emitter
 };
 
 // ================================================================

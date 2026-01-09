@@ -98,6 +98,12 @@ void ParticleEmitter::UpdateRenderables(double deltaTime, std::vector<Renderable
             renderables.erase(renderables.begin() + i);
             continue;
         }
+        if(p.lifetime < p.maxLifetime * 0.75f && !p.detached)
+        {
+            // Detach particle from emitter after half lifetime
+            p.detached = true;
+            p.spawnPointMatrix = transformComponent->worldMatrix;
+		}
 
         p.position += p.velocity * (float)deltaTime;
 
@@ -107,15 +113,23 @@ void ParticleEmitter::UpdateRenderables(double deltaTime, std::vector<Renderable
             glm::translate(glm::mat4(1.0f), p.position) *
             glm::scale(glm::mat4(1.0f), glm::vec3(scale));
 
-        renderables[i].modelMatrix = GetComponent<TransformComponent>().worldMatrix * local;
+        if(!p.detached)
+            renderables[i].modelMatrix = transformComponent->worldMatrix * local;
+        else {
+			renderables[i].modelMatrix = p.spawnPointMatrix * local;
+            p.velocity *= 0.98f;
+        }
 
     } 
 }
 
 void ParticleEmitter::UpdateTransform(const glm::mat4& newTransform)
 {
+    
     for (size_t i = 0; i < particles.size(); i++)
     {
+        if(particles[i].detached)
+			continue;
         glm::mat4 local =
             glm::translate(glm::mat4(1.0f), particles[i].position);
 
