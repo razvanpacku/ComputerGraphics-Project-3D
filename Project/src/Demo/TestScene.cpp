@@ -58,7 +58,7 @@ void TestScene::OnCreate()
 	Anchor* planetAnchor = new Anchor("PlanetAnchor");
 	AddOrMoveEntity(*planetAnchor);
 
-	BasePart* planet = new BasePart(BasePartShape::SPHERE, "plastic", "Planet");
+	BasePart* planet = new BasePart(BasePartShape::SPHERE, "planet", "Planet");
 	col->GiveCollisionShape(planet, { }, 500.0f);
 	//col->GiveCollisionShape(ball2, { RigidBodyShape::Sphere, 1.5f, 0.0f});
 	AddOrMoveEntity(*planet, planetAnchor);
@@ -67,7 +67,7 @@ void TestScene::OnCreate()
 	Anchor* moonAnchor = new Anchor("MoonAnchor");
 	AddOrMoveEntity(*moonAnchor, planetAnchor);
 
-	BasePart* moon = new BasePart(BasePartShape::SPHERE, "plastic", "Moon");
+	BasePart* moon = new BasePart(BasePartShape::SPHERE, "moon", "Moon");
 	col->GiveCollisionShape(moon, {}, 400.f);
 	AddOrMoveEntity(*moon, moonAnchor);
 	moon->SetGlobalScale(glm::vec3(15.0f));

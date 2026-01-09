@@ -1,0 +1,19 @@
+{
+    "name": "planet",
+    "shader": "example",
+    "uniforms": {
+        "receiveShadows": 1
+    },
+    "textures": {
+        "albedo": "planet.png"
+    },
+    "ubos": {
+        "Material": {
+            "shininess": 2.0,
+            "specularStrength": 0.1,
+            "metalicity": 0.1,
+            "overrideMetalness": 1
+        }
+    },
+    "castShadows": true
+}
