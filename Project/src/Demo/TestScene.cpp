@@ -31,21 +31,22 @@ void TestScene::OnCreate()
 	fpsText->SetAnchorPoint({ 0.f, 1.f });
 	AddOrMoveEntity(*fpsText);
 
-	Textbox* fuelText = new Textbox("Fuel: ", "FuelText");
-	fuelText->SetRelativeScale({ 0.f, 0.f });
-	fuelText->SetAbsoluteScaleOffset({ 300.f, 32.f });
-	fuelText->SetRelativePosition({ 1.f, 0.1f });
-	fuelText->SetAnchorPoint({ 1.f, 0.f });
-	fuelText->SetFontSize(1.5f);
-	AddOrMoveEntity(*fuelText);
+	Textbox* rocketData = new Textbox("Fuel: \nCharge: \nStabilizing: ", "RocketData");
+	rocketData->SetRelativeScale({ 0.f,0.f });
+	rocketData->SetAbsoluteScaleOffset({ 512.f, 96.f });
+	rocketData->SetRelativePosition({ 0.5f, 0.f });
+	rocketData->SetAnchorPoint({ 0.5f, 0.f });
+	rocketData->SetFontSize(2.0f);
+	AddOrMoveEntity(*rocketData);
 
-	Textbox* chargeText = new Textbox("Energy: ", "ChargeText");
-	chargeText->SetRelativeScale({ 0.f, 0.f });
-	chargeText->SetAbsoluteScaleOffset({ 300.f, 32.f });
-	chargeText->SetRelativePosition({ 1.f, 0.05f });
-	chargeText->SetAnchorPoint({ 1.f, 0.f });
-	chargeText->SetFontSize(1.5f);
-	AddOrMoveEntity(*chargeText);
+	Textbox* bodyDistance = new Textbox("text", "BodyDistance");
+	bodyDistance->SetRelativeScale({ 0.f,0.f });
+	bodyDistance->SetAbsoluteScaleOffset({ 512.f,64.f });
+	bodyDistance->SetRelativePosition({ 0.5f, 1.f });
+	bodyDistance->SetAnchorPoint({ 0.5f, 1.f });
+	bodyDistance->SetFontSize(2.0f);
+	AddOrMoveEntity(*bodyDistance);
+
 
 	AsteroidRing* asteroidRing = new AsteroidRing("AsteroidRing");
 	asteroidRing->SetInnerRadius(350.f);
@@ -102,12 +103,6 @@ void TestScene::OnUpdate(double deltaTime)
 	int fps = static_cast<int>(1.0f / deltaTime);
 	fpsText->SetText("FPS: " + std::to_string(fps));
 
-	Textbox* fuelText = dynamic_cast<Textbox*>(FindFirstDescendant("FuelText"));
-	Textbox* chargeText = dynamic_cast<Textbox*>(FindFirstDescendant("ChargeText"));
-	Rocket* rocketRef = dynamic_cast<Rocket*>(FindFirstDescendant("Rocket"));
-	fuelText->SetText("Fuel: " + std::to_string(static_cast<int>(rocketRef->GetFuel())) + "%");
-	chargeText->SetText("Energy: " + std::to_string(static_cast<int>(rocketRef->GetCharge())) + "%");
-
 	BasePart* planet = dynamic_cast<BasePart*>(FindFirstDescendant("Planet"));
 	Anchor* moonAnchor = dynamic_cast<Anchor*>(FindFirstDescendant("MoonAnchor"));
 	BasePart* moon = dynamic_cast<BasePart*>(FindFirstDescendant("Moon"));
@@ -117,8 +112,12 @@ void TestScene::OnUpdate(double deltaTime)
 
 	Rocket* rocket = dynamic_cast<Rocket*>(FindFirstDescendant("Rocket"));
 	rocket->Update(deltaTime);
+	Textbox* rocketData = dynamic_cast<Textbox*>(FindFirstDescendant("RocketData"));
+	rocketData->SetText("Fuel: " + std::to_string(static_cast<int>(rocket->GetFuel())) +
+		"kg\nCharge: " + std::to_string(static_cast<int>(rocket->GetCharge())) +
+		"W\nStabilizing: " + (rocket->IsStabilizing() ? "Yes" : "No"));
+
 	auto& rc1 = rocket->GetComponent<RigidBodyComponent>();
-	
 	auto& rc2 = planet->GetComponent<RigidBodyComponent>();
 	auto& rc3 = moon->GetComponent<RigidBodyComponent>();
 	glm::vec3 dir = glm::vec3(planet->GetGlobalPosition() - rocket->GetGlobalPosition());
@@ -129,5 +128,16 @@ void TestScene::OnUpdate(double deltaTime)
 	distance = glm::length(dir2);
 	force = (glm::normalize(dir2) * (rc1.mass * rc3.mass) / (distance * distance)) * 1.f;
 	rc1.AddForce(force);
+
+	Textbox* bodyDistance = dynamic_cast<Textbox*>(FindFirstDescendant("BodyDistance"));
+	{
+		int planetDistance = glm::length(planet->GetGlobalPosition() - rocket->GetGlobalPosition()) - 10.f;
+		int moonDistance = glm::length(moon->GetGlobalPosition() - rocket->GetGlobalPosition()) - 7.5f;
+
+		std::string body = (planetDistance < moonDistance) ? "Planet" : "Moon";
+		int distance = (planetDistance < moonDistance) ? planetDistance : moonDistance;
+
+		bodyDistance->SetText(body + "\n" + std::to_string(distance) + "m");
+	}
 	//rc2.AddForce(-force);
 }

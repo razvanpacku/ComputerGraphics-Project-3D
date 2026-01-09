@@ -73,14 +73,14 @@ Rocket::Rocket(const std::string& name)
 	connections.emplace_back(_im.BindKey(GLFW_KEY_Q, InputEventType::Held, [this]() {
 		auto& rc = this->GetComponent<RigidBodyComponent>();
 		glm::quat rot = this->GetGlobalRotation();
-		glm::vec3 torque = rot * glm::vec3(0.0f, -1.0f, 0.0f) * 0.1f * static_cast<float>(this->deltaTime) * 16.5f;
+		glm::vec3 torque = rot * glm::vec3(0.0f, -1.0f, 0.0f) * 0.1f * static_cast<float>(this->deltaTime) * 165.f;
 		rc.AddTorque(torque);
 		}));
 
 	connections.emplace_back(_im.BindKey(GLFW_KEY_E, InputEventType::Held, [this]() {
 		auto& rc = this->GetComponent<RigidBodyComponent>();
 		glm::quat rot = this->GetGlobalRotation();
-		glm::vec3 torque = rot * glm::vec3(0.0f, 1.0f, 0.0f) * 0.1f * static_cast<float>(this->deltaTime) * 16.5f;
+		glm::vec3 torque = rot * glm::vec3(0.0f, 1.0f, 0.0f) * 0.1f * static_cast<float>(this->deltaTime) * 165.f;
 		rc.AddTorque(torque);
 		}));
 
