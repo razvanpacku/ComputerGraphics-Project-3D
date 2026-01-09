@@ -13,8 +13,8 @@ public:
 	bool IsStabilizing() const { return isStabilizing; }
 	void Update(double deltaTime);
 private:
-	float fuel = 10.0f;
-	float charge = 10.0f;
+	float fuel = 100.0f;
+	float charge = 100.0f;
 	bool isStabilizing = false;
 	double deltaTime = 0.0;
 	ParticleEmitter* thrusterParticles;
