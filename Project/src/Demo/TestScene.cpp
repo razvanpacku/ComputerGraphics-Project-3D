@@ -31,6 +31,22 @@ void TestScene::OnCreate()
 	fpsText->SetAnchorPoint({ 0.f, 1.f });
 	AddOrMoveEntity(*fpsText);
 
+	Textbox* fuelText = new Textbox("Fuel: ", "FuelText");
+	fuelText->SetRelativeScale({ 0.f, 0.f });
+	fuelText->SetAbsoluteScaleOffset({ 300.f, 32.f });
+	fuelText->SetRelativePosition({ 1.f, 0.1f });
+	fuelText->SetAnchorPoint({ 1.f, 0.f });
+	fuelText->SetFontSize(1.5f);
+	AddOrMoveEntity(*fuelText);
+
+	Textbox* chargeText = new Textbox("Energy: ", "ChargeText");
+	chargeText->SetRelativeScale({ 0.f, 0.f });
+	chargeText->SetAbsoluteScaleOffset({ 300.f, 32.f });
+	chargeText->SetRelativePosition({ 1.f, 0.05f });
+	chargeText->SetAnchorPoint({ 1.f, 0.f });
+	chargeText->SetFontSize(1.5f);
+	AddOrMoveEntity(*chargeText);
+
 	AsteroidRing* asteroidRing = new AsteroidRing("AsteroidRing");
 	asteroidRing->SetInnerRadius(350.f);
 	asteroidRing->SetOuterRadius(400.f);
@@ -85,6 +101,12 @@ void TestScene::OnUpdate(double deltaTime)
 	Textbox* fpsText = dynamic_cast<Textbox*>(FindFirstDescendant("FpsText"));
 	int fps = static_cast<int>(1.0f / deltaTime);
 	fpsText->SetText("FPS: " + std::to_string(fps));
+
+	Textbox* fuelText = dynamic_cast<Textbox*>(FindFirstDescendant("FuelText"));
+	Textbox* chargeText = dynamic_cast<Textbox*>(FindFirstDescendant("ChargeText"));
+	Rocket* rocketRef = dynamic_cast<Rocket*>(FindFirstDescendant("Rocket"));
+	fuelText->SetText("Fuel: " + std::to_string(static_cast<int>(rocketRef->GetFuel())) + "%");
+	chargeText->SetText("Energy: " + std::to_string(static_cast<int>(rocketRef->GetCharge())) + "%");
 
 	BasePart* planet = dynamic_cast<BasePart*>(FindFirstDescendant("Planet"));
 	Anchor* moonAnchor = dynamic_cast<Anchor*>(FindFirstDescendant("MoonAnchor"));
