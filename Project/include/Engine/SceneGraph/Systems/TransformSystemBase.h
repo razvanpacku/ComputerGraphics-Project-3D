@@ -19,6 +19,8 @@ public:
 protected:
 	entt::registry* registry = nullptr;
 
+	double deltaTime = 0.0;
+
 	void UpdateSubtree(entt::entity entity);
 };
 
@@ -32,6 +34,7 @@ TransformSystemBase<TransformComponentType, DirtyTagType>::TransformSystemBase(S
 template<typename TransformComponentType, typename DirtyTagType>
 void TransformSystemBase<TransformComponentType, DirtyTagType>::OnUpdate(double deltaTime)
 {
+	this->deltaTime = deltaTime;
 	// Get the root entities with TransformDirtyTag
 	// We do this by checking for an entity with TransformDirtyTag if their parent is null or does not have TransformDirtyTag
 	auto view = registry->view<DirtyTagType>();

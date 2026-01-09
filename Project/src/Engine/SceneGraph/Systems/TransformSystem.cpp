@@ -18,7 +18,9 @@ void TransformSystem::UpdateTransform(entt::entity entity)
 {
 	auto* transformC = registry->try_get<TransformComponent>(entity);
 	if (transformC) {
-		// Store old scale
+		// Store old position, rotation, scale
+		glm::vec3 oldPosition = TransformFunctions::DecomposePosition(transformC->worldMatrix);
+		glm::quat oldRotation = TransformFunctions::DecomposeRotation(transformC->worldMatrix);
 		glm::vec3 oldScale = TransformFunctions::DecomposeScale(transformC->worldMatrix);
 
 		// Update local matrix
@@ -51,6 +53,44 @@ void TransformSystem::UpdateTransform(entt::entity entity)
 			float s = glm::length(nonUniformScale / oldScale) / sqrt(3.0f); // average scale factor
 			rigidbodyC->inertiaTensor *= s * s;
 			rigidbodyC->inverseInertiaTensor /= s * s;
+
+			// skip lag spikes
+			if (rigidbodyC->anchored && deltaTime > 0) {
+				// compute velocity and angular velocity based on change in position and rotation
+				glm::vec3 newPosition = TransformFunctions::DecomposePosition(transformC->worldMatrix);
+				glm::quat newRotation = TransformFunctions::DecomposeRotation(transformC->worldMatrix);
+
+				if (oldPosition == newPosition) {
+					rigidbodyC->velocity = glm::vec3(0.0f);
+				}
+				else {
+					glm::vec3 linearVelocity = (newPosition - oldPosition) / static_cast<float>(deltaTime);
+					rigidbodyC->velocity = linearVelocity;
+				}
+				// --- Angular velocity ---
+				if (oldRotation == newRotation) {
+					rigidbodyC->angularVelocity = glm::vec3(0.0f);
+				}
+				else {
+					glm::quat dq = newRotation * glm::inverse(oldRotation);
+					dq = glm::normalize(dq);
+
+					float angle = 2.0f * acos(glm::clamp(dq.w, -1.0f, 1.0f));
+					float sinHalf = sqrtf(1.0f - dq.w * dq.w);
+
+					glm::vec3 axis;
+					if (sinHalf < 1e-6f) {
+						// rotation too small, approximate axis from quaternion xyz
+						axis = glm::normalize(glm::vec3(dq.x, dq.y, dq.z));
+					}
+					else {
+						axis = glm::vec3(dq.x, dq.y, dq.z) / sinHalf;
+					}
+
+					glm::vec3 angularVelocity = axis * (angle / static_cast<float>(deltaTime));
+					rigidbodyC->angularVelocity = angularVelocity;
+				}
+			}
 		}
 
 		// check if entity is renderable and update its transforms

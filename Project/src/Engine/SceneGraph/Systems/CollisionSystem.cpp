@@ -283,7 +283,7 @@ void CollisionSystem::ResolveContacts(double deltaTime) {
 
 			// Coulomb model clamp
 			float maxFriction = j * staticFriction;
-			if (fabs(jt) > maxFriction)
+			if (abs(jt) > maxFriction)
 				jt = glm::sign(jt) * j * dynamicFriction;
 
 			glm::vec3 frictionImpulse = jt * tangent;
