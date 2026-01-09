@@ -160,6 +160,11 @@ std::string ShaderPolicy::LoadFile(const std::string& path)
                 }
             }
 
+            // nvidia drivers are more permissive, so for others we need to remove this line
+            if(line.find("out vec4 gl_Position;") != std::string::npos) {
+				continue;
+			}
+
             out << line << "\n";
         }
 
