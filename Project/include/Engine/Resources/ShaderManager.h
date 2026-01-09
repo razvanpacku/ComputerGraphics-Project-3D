@@ -100,6 +100,12 @@ public:
 
 	virtual void PreloadResources(const std::string& resourceDirectory) override;
 
+	bool HasInclude() const { return hasInclude; } 
+	std::string GetDefineFileSource() const { return defineFileSource; }
+
 	GLuint currentProgram = 0;
+private:
+	bool hasInclude = false;
+    std::string defineFileSource;
 };
 

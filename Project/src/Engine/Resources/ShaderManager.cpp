@@ -134,7 +134,37 @@ std::string ShaderPolicy::LoadFile(const std::string& path)
     std::ifstream file(path);
     std::stringstream ss;
     ss << file.rdbuf();
-    return ss.str();
+    if (_sm->HasInclude()) {
+        return ss.str();
+    }
+    else {
+        std::string src = ss.str();
+        std::stringstream in(src);
+        std::stringstream out;
+
+        std::string line;
+        while (std::getline(in, line)) {
+
+            // Remove the include extension directive on fallback
+            if (line.find("#extension GL_ARB_shading_language_include") != std::string::npos) {
+                // skip the line entirely
+                continue;
+            }
+
+            // Match #include </defs.glsl> or #include "/defs.glsl"
+            if (line.find("#include") != std::string::npos) {
+                // we only handle the defs include — keeps it simple
+                if (line.find("defs.glsl") != std::string::npos) {
+                    out << _sm->GetDefineFileSource() << "\n";
+                    continue;
+                }
+            }
+
+            out << line << "\n";
+        }
+
+        return out.str();
+    }
 }
 
 GLuint ShaderPolicy::Compile(GLenum type, const std::string& src)
@@ -142,8 +172,12 @@ GLuint ShaderPolicy::Compile(GLenum type, const std::string& src)
     GLuint shader = glCreateShader(type);
     const char* csrc = src.c_str();
     glShaderSource(shader, 1, &csrc, nullptr);
-    //glCompileShader(shader);
-	glCompileShaderIncludeARB(shader, 0, nullptr, nullptr); 
+    if (_sm->HasInclude()) {
+        glCompileShaderIncludeARB(shader, 0, nullptr, nullptr);
+    }
+    else {
+		glCompileShader(shader);
+    }
 
     GLint success;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
@@ -434,6 +468,8 @@ ShaderManager::ShaderManager()
 	// Give Shader pointer to itself for currentProgram access
 	Shader::_sm = this;
 	ShaderPolicy::_sm = this;
+
+	hasInclude = glNamedStringARB != nullptr && glCompileShaderIncludeARB != nullptr;
 }
 
 void ShaderManager::UseShader(const ShaderHandle& h, GLStateCache* glState)
@@ -482,7 +518,12 @@ void ShaderManager::PreloadResources(const std::string& resourceDirectory)
     std::string defsPath = (fullDir / "defs.glsl").string();
     std::cout << "  Loading global shader definitions from: " << defsPath << "\n";
 	std::string defContent = policy.LoadFile(defsPath);
-	glNamedStringARB(GL_SHADER_INCLUDE_ARB, -1, "/defs.glsl", -1, defContent.c_str());
+    if (hasInclude) {
+        glNamedStringARB(GL_SHADER_INCLUDE_ARB, -1, "/defs.glsl", -1, defContent.c_str());
+    }
+    else {
+		defineFileSource = defContent;
+    }
 
 
 	// shaders are stored as directories which inside have the .vert and .frag files
