@@ -50,6 +50,7 @@
     <ClCompile Include="src\Engine\SceneGraph\Entities\Textbox.cpp" />
     <ClCompile Include="src\Engine\SceneGraph\Systems\PhysicsSystem.cpp" />
     <ClCompile Include="src\Engine\SceneGraph\Systems\CollisionSystem.cpp" />
+    <ClCompile Include="src\Demo\Entities\Rocket.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\external\assimp\Compiler\poppack1.h" />
@@ -495,6 +496,7 @@
     <ClInclude Include="include\Engine\SceneGraph\Systems\PhysicsSystem.h" />
     <ClInclude Include="include\Engine\Components\ColliderComponent.h" />
     <ClInclude Include="include\Engine\SceneGraph\Systems\CollisionSystem.h" />
+    <ClInclude Include="include\Demo\Entities\Rocket.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="include\external\assimp\color4.inl" />

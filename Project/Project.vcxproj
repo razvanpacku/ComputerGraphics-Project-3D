@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Demo\Entities\Rocket.cpp" />
     <ClCompile Include="src\Engine\SceneGraph\Systems\CollisionSystem.cpp" />
     <ClCompile Include="src\Engine\SceneGraph\Systems\PhysicsSystem.cpp" />
     <ClCompile Include="src\Engine\Controllers\OrbitCameraController.cpp" />
@@ -70,6 +71,7 @@
     <ClCompile Include="src\Engine\SceneGraph\Entities\Textbox.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\Demo\Entities\Rocket.h" />
     <ClInclude Include="include\Engine\SceneGraph\Systems\CollisionSystem.h" />
     <ClInclude Include="include\Demo\Entities\AsteroidRing.h" />
     <ClInclude Include="include\Engine\Components\ColliderComponent.h" />
