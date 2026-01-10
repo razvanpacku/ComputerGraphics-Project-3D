@@ -17,6 +17,7 @@ public:
 		if ((!meshHandle.IsValid() && !dynamicMesh) || !materialHandle.IsValid()) return;
 
 		auto& _mm = ResourceManager::Get().meshes;
+		auto& _mam = ResourceManager::Get().materials;
 
 		Renderable renderable;
 		renderable.meshHandle = meshHandle;
@@ -32,6 +33,24 @@ public:
 			renderable.hasBounds = true;
 			renderable.cullBackfaces = meshPtr->cullBackfaces;
 		}
+
+		bool isTransparent = false;
+
+		Material* material = _mam.Get(materialHandle);
+		if (material) {
+			renderable.castShadows = material->castShadows;
+			auto val = material->GetUniform<int>("receiveShadows");
+			renderable.receiveShadows = val.value_or(false);
+
+			auto transVal = material->GetUniform<int>("isTransparent");
+			isTransparent = transVal.value_or(0) != 0;
+		}
+
+		if (isTransparent)
+		{
+			renderable.layer = RenderLayer::Transparent;
+		}
+
 
 		out.push_back(renderable);
 	}

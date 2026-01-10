@@ -21,7 +21,7 @@ void TestScene::OnCreate()
 	}
 	Light* light = dynamic_cast<Light*>(FindFirstChild("Light"));
 	if (light) {
-		light->SetLightPosition({ 1.0f, 1.0f, 1.0f, 0.0f });
+		light->SetLightPosition({ 1.0f, 0.0f, 0.0f, 0.0f });
 	}
 
 	Textbox* fpsText = new Textbox("FPS: ", "FpsText");
@@ -54,6 +54,12 @@ void TestScene::OnCreate()
 	AddOrMoveEntity(*asteroidRing);
 
 	auto* col = GetSystem<CollisionSystem>();
+
+	BasePart* sun = new BasePart(BasePartShape::QUAD, "sun", "Sun");
+	AddOrMoveEntity(*sun);
+	sun->SetGlobalPosition({ 100000.0f, 0.0f, 0.0f });
+	sun->SetGlobalRotation(glm::quat(glm::vec3(0.0f, glm::radians(-90.f), 0.0f)));
+	sun->SetGlobalScale(glm::vec3(10000.0f));
 
 	Anchor* planetAnchor = new Anchor("PlanetAnchor");
 	AddOrMoveEntity(*planetAnchor);
