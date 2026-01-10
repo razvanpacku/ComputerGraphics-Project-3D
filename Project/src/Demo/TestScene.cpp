@@ -51,6 +51,7 @@ void TestScene::OnCreate()
 	AsteroidRing* asteroidRing = new AsteroidRing("AsteroidRing");
 	asteroidRing->SetInnerRadius(350.f);
 	asteroidRing->SetOuterRadius(400.f);
+	asteroidRing->SetRotationSpeed(1000.f);
 	AddOrMoveEntity(*asteroidRing);
 
 	auto* col = GetSystem<CollisionSystem>();
