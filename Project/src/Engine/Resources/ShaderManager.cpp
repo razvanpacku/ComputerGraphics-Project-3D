@@ -1,0 +1,560 @@
+#include "Engine/Resources/ShaderManager.h"
+
+#include <fstream>
+#include <sstream>
+#include <iostream>
+#include "Engine/Resources/ResourceManager.h"
+
+#include "Engine/Renderer/GLStateCache.h"
+
+// =========================================================
+// Shader
+// =========================================================
+ShaderManager* Shader::_sm = nullptr;
+
+void Shader::Bind() const
+{
+	//check if already bound
+    if (program != Shader::_sm->currentProgram) {
+        Shader::_sm->currentProgram = program;
+        glUseProgram(program);
+	}
+}
+void Shader::SetRaw(const std::string& name, GLenum GLtype, const void* data, size_t elementCount)
+{
+    auto it = reflection.uniforms.find(name);
+    if (it == reflection.uniforms.end()) {
+        return;
+    }
+    const UniformInfo& info = it->second;
+    if (info.location == -1) {
+        // uniform optimized out or part of UBO
+        return;
+    }
+    if(info.type != GLtype) {
+        std::cerr << "Type mismatch in SetRaw for uniform " << name << ": expected "
+                  << GLTypeToString(info.type) << ", got " << GLTypeToString(GLtype) << std::endl;
+        return;
+	}
+
+	auto loc = info.location;
+
+    Bind();
+    // Dispatch based on type
+    switch (GLtype){
+        // floats
+    case GL_FLOAT:
+        glUniform1fv(loc, (GLsizei)elementCount, (const float*)data);
+        break;
+
+    case GL_FLOAT_VEC2:
+        glUniform2fv(loc, (GLsizei)elementCount, (const float*)data);
+        break;
+
+    case GL_FLOAT_VEC3:
+        glUniform3fv(loc, (GLsizei)elementCount, (const float*)data);
+        break;
+
+    case GL_FLOAT_VEC4:
+        glUniform4fv(loc, (GLsizei)elementCount, (const float*)data);
+        break;
+
+        // integers
+    case GL_INT:
+    case GL_BOOL:
+        glUniform1iv(loc, (GLsizei)elementCount, (const int*)data);
+        break;
+
+    case GL_INT_VEC2:
+    case GL_BOOL_VEC2:
+        glUniform2iv(loc, (GLsizei)elementCount, (const int*)data);
+        break;
+
+    case GL_INT_VEC3:
+    case GL_BOOL_VEC3:
+        glUniform3iv(loc, (GLsizei)elementCount, (const int*)data);
+        break;
+
+    case GL_INT_VEC4:
+    case GL_BOOL_VEC4:
+        glUniform4iv(loc, (GLsizei)elementCount, (const int*)data);
+        break;
+
+		// matrices
+    case GL_FLOAT_MAT2:
+        glUniformMatrix2fv(loc, (GLsizei)elementCount, GL_FALSE, (const float*)data);
+        break;
+
+    case GL_FLOAT_MAT3:
+        glUniformMatrix3fv(loc, (GLsizei)elementCount, GL_FALSE, (const float*)data);
+        break;
+
+    case GL_FLOAT_MAT4:
+        glUniformMatrix4fv(loc, (GLsizei)elementCount, GL_FALSE, (const float*)data);
+        break;
+
+    case GL_FLOAT_MAT2x3:
+        glUniformMatrix2x3fv(loc, (GLsizei)elementCount, GL_FALSE, (const float*)data);
+        break;
+
+    case GL_FLOAT_MAT3x2:
+        glUniformMatrix3x2fv(loc, (GLsizei)elementCount, GL_FALSE, (const float*)data);
+        break;
+
+    case GL_FLOAT_MAT2x4:
+        glUniformMatrix2x4fv(loc, (GLsizei)elementCount, GL_FALSE, (const float*)data);
+        break;
+
+    case GL_FLOAT_MAT4x2:
+        glUniformMatrix4x2fv(loc, (GLsizei)elementCount, GL_FALSE, (const float*)data);
+        break;
+
+    case GL_FLOAT_MAT3x4:
+        glUniformMatrix3x4fv(loc, (GLsizei)elementCount, GL_FALSE, (const float*)data);
+        break;
+
+    case GL_FLOAT_MAT4x3:
+        glUniformMatrix4x3fv(loc, (GLsizei)elementCount, GL_FALSE, (const float*)data);
+        break;
+
+    default:
+        break;
+    }
+}
+
+// =========================================================
+// ShaderPolicy
+// =========================================================
+
+ShaderManager* ShaderPolicy::_sm = nullptr;
+
+// --- Shader Compilation Helpers ---
+std::string ShaderPolicy::LoadFile(const std::string& path)
+{
+    std::ifstream file(path);
+    std::stringstream ss;
+    ss << file.rdbuf();
+    if (_sm->HasInclude()) {
+        return ss.str();
+    }
+    else {
+        std::string src = ss.str();
+        std::stringstream in(src);
+        std::stringstream out;
+
+        std::string line;
+        while (std::getline(in, line)) {
+
+            // Remove the include extension directive on fallback
+            if (line.find("#extension GL_ARB_shading_language_include") != std::string::npos) {
+                // skip the line entirely
+                continue;
+            }
+
+            // Match #include </defs.glsl> or #include "/defs.glsl"
+            if (line.find("#include") != std::string::npos) {
+                // we only handle the defs include — keeps it simple
+                if (line.find("defs.glsl") != std::string::npos) {
+                    out << _sm->GetDefineFileSource() << "\n";
+                    continue;
+                }
+            }
+
+            // nvidia drivers are more permissive, so for others we need to remove this line
+            if(line.find("out vec4 gl_Position;") != std::string::npos) {
+				continue;
+			}
+
+            out << line << "\n";
+        }
+
+        return out.str();
+    }
+}
+
+GLuint ShaderPolicy::Compile(GLenum type, const std::string& src)
+{
+    GLuint shader = glCreateShader(type);
+    const char* csrc = src.c_str();
+    glShaderSource(shader, 1, &csrc, nullptr);
+    if (_sm->HasInclude()) {
+        glCompileShaderIncludeARB(shader, 0, nullptr, nullptr);
+    }
+    else {
+		glCompileShader(shader);
+    }
+
+    GLint success;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+        char log[1024];
+        glGetShaderInfoLog(shader, 1024, nullptr, log);
+        std::cerr << "Shader compile error: " << log << std::endl;
+    }
+
+    return shader;
+}
+
+GLuint ShaderPolicy::LinkProgram(GLuint vs, GLuint fs, GLuint gs)
+{
+    GLuint program = glCreateProgram();
+    glAttachShader(program, vs);
+    glAttachShader(program, fs);
+    if (gs != 0)
+		glAttachShader(program, gs);
+    glLinkProgram(program);
+
+    GLint success;
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+    if (!success)
+    {
+        char log[1024];
+        glGetProgramInfoLog(program, 1024, nullptr, log);
+        std::cerr << "Program link error: " << log << std::endl;
+    }
+
+    glDeleteShader(vs);
+    glDeleteShader(fs);
+
+    return program;
+}
+
+// --- Reflection Helpers ---
+void ShaderPolicy::ReflectUniforms(GLuint program, ShaderReflection& out)
+{
+    GLint count = 0;
+    glGetProgramiv(program, GL_ACTIVE_UNIFORMS, &count);
+
+    char nameBuffer[256];
+
+	GLint textureUnitCounter = 0;
+
+	GLint currentProgram = _sm->currentProgram;
+
+    for (GLint i = 0; i < count; ++i) {
+        GLsizei length;
+        GLint size;     // array size
+        GLenum type;
+
+        glGetActiveUniform(program, i, sizeof(nameBuffer), &length, &size, &type, nameBuffer);
+
+        std::string name(nameBuffer, length);
+        std::string baseName;
+
+        // OpenGL reports array uniforms as: "myArray[0]"
+        // Normalize by stripping "[0]".
+        if (name.size() > 3 && name.substr(name.size() - 3) == "[0]") {
+            baseName = name.substr(0, name.size() - 3);
+        }
+        else {
+			baseName = name;
+        }
+
+        GLint location = glGetUniformLocation(program, name.c_str());
+        if (location == -1)
+            continue; // part of a UBO or optimized out
+
+        if (IsSamplerType(type)) {
+
+            SamplerInfo samp;
+            samp.name = baseName;
+            samp.type = type;
+            samp.location = location;
+            samp.textureUnit = textureUnitCounter;
+			textureUnitCounter += size;
+
+            // set the uniform immediately (so the shader now knows its texture unit)
+
+            if (program != _sm->currentProgram) {
+                _sm->currentProgram = program;
+                glUseProgram(program);
+            }
+
+            if (size == 1) {
+                glUniform1i(location, samp.textureUnit);
+				out.samplers[baseName] = samp;
+
+                continue;
+            }
+
+            //glUniform1i(location, samp.textureUnit);
+            for (GLint idx = 0; idx < size; idx++) {
+                glUniform1i(location + idx, samp.textureUnit + idx);
+
+                // for texture arrays, we treat them differently from uniforms and store each entry separately
+				SamplerInfo arraySampElem = samp;
+				arraySampElem.name = baseName + "[" + std::to_string(idx) + "]";
+				arraySampElem.location = location + idx;
+				arraySampElem.textureUnit = samp.textureUnit + idx;
+				out.samplers[arraySampElem.name] = arraySampElem;
+            }
+
+            continue;
+        }
+
+        UniformInfo info;
+        info.name = name;
+		info.baseName = baseName;
+        info.type = type;
+        info.size = size;
+        info.location = location;
+
+        out.uniforms[baseName] = info;
+    }
+
+    if(currentProgram != _sm->currentProgram) {
+        _sm->currentProgram = currentProgram;
+        glUseProgram(currentProgram);
+	}
+}
+
+void ShaderPolicy::ReflectUniformBlocks(GLuint program, ShaderReflection& out)
+{
+	auto& _ub = ResourceManager::Get().ubos;
+
+    GLint blockCount = 0;
+    glGetProgramiv(program, GL_ACTIVE_UNIFORM_BLOCKS, &blockCount);
+
+    char nameBuffer[256];
+
+    for (GLint blockIndex = 0; blockIndex < blockCount; ++blockIndex) {
+        GLsizei length;
+        glGetActiveUniformBlockName(program, blockIndex, sizeof(nameBuffer), &length, nameBuffer);
+
+        std::string blockName(nameBuffer, length);
+
+        UniformBlockInfo blockInfo;
+        blockInfo.name = blockName;
+        blockInfo.index = blockIndex;
+
+        GLint dataSize;
+        glGetActiveUniformBlockiv(program, blockIndex, GL_UNIFORM_BLOCK_DATA_SIZE, &dataSize);
+        blockInfo.dataSize = dataSize;
+
+        GLint blockSize;
+        glGetActiveUniformBlockiv(program, blockIndex, GL_UNIFORM_BLOCK_DATA_SIZE, &blockSize);
+		blockInfo, dataSize = blockSize;
+
+        // reflect internal fields
+        GLint activeUniforms;
+        glGetActiveUniformBlockiv(program, blockIndex, GL_UNIFORM_BLOCK_ACTIVE_UNIFORMS, &activeUniforms);
+
+        std::vector<GLint> indices(activeUniforms);
+        glGetActiveUniformBlockiv(program, blockIndex, GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES, indices.data());
+
+        // Convert to GLuint for OpenGL API
+        std::vector<GLuint> uindices(indices.begin(), indices.end());
+
+        std::vector<GLint> offsets(activeUniforms);
+        std::vector<GLint> types(activeUniforms);
+        std::vector<GLint> sizes(activeUniforms);
+        std::vector<GLint> arrayStrides(activeUniforms);
+        std::vector<GLint> matrixStrides(activeUniforms);
+        std::vector<GLint> rowMajors(activeUniforms);
+
+        glGetActiveUniformsiv(program, activeUniforms, uindices.data(), GL_UNIFORM_OFFSET, offsets.data());
+        glGetActiveUniformsiv(program, activeUniforms, uindices.data(), GL_UNIFORM_TYPE, types.data());
+        glGetActiveUniformsiv(program, activeUniforms, uindices.data(), GL_UNIFORM_SIZE, sizes.data());
+        glGetActiveUniformsiv(program, activeUniforms, uindices.data(), GL_UNIFORM_ARRAY_STRIDE, arrayStrides.data());
+        glGetActiveUniformsiv(program, activeUniforms, uindices.data(), GL_UNIFORM_MATRIX_STRIDE, matrixStrides.data());
+        glGetActiveUniformsiv(program, activeUniforms, uindices.data(), GL_UNIFORM_IS_ROW_MAJOR, rowMajors.data());
+
+        for (int i = 0; i < activeUniforms; i++) {
+            char uniformName[256];
+            GLsizei len;
+            glGetActiveUniformName(program, indices[i], sizeof(uniformName), &len, uniformName);
+
+			std::string name = std::string(uniformName, len);
+
+            // OpenGL reports array uniforms as: "myArray[0]"
+            // Normalize by stripping "[0]".
+            if (name.size() > 3 && name.substr(name.size() - 3) == "[0]") {
+                name = name.substr(0, name.size() - 3);
+            }
+
+            UniformBlockFieldInfo field;
+            field.name = name;
+            field.type = types[i];
+            field.size = sizes[i];
+            field.offset = offsets[i];
+            field.arrayStride = arrayStrides[i];
+            field.matrixStride = matrixStrides[i];
+            field.rowMajor = (rowMajors[i] != 0);
+
+            blockInfo.fields.push_back(field);
+        }
+
+        // Obtain binding point and bufferIndex from UboManager
+        auto uboHandle = _ub.CreateOrGet(blockInfo);
+        auto* ubo = _ub.Get(uboHandle);
+        blockInfo.binding = ubo->binding;
+        blockInfo.bufferID = ubo->bufferID;
+
+        // bind the block to the binding point
+        glUniformBlockBinding(program, blockIndex, blockInfo.binding);
+
+        out.uniformBlocks[blockName] = blockInfo;
+    }
+}
+
+void ShaderPolicy::Reflect(GLuint program, ShaderReflection& out)
+{
+    ReflectUniforms(program, out);
+	ReflectUniformBlocks(program, out);
+}
+
+// --- Policy interface ---
+Shader ShaderPolicy::Create(const std::string& name, const ShaderResourceInfo& shaderInfo)
+{
+    std::string vsSrc = LoadFile(shaderInfo.vertexPath);
+    std::string fsSrc = LoadFile(shaderInfo.fragmentPath);
+    GLuint vs = Compile(GL_VERTEX_SHADER, vsSrc);
+    GLuint fs = Compile(GL_FRAGMENT_SHADER, fsSrc);
+	GLuint gs = 0;
+
+    if (!shaderInfo.geometryPath.empty()) {
+		std::string gsSrc = LoadFile(shaderInfo.geometryPath);
+		gs = Compile(GL_GEOMETRY_SHADER, gsSrc);
+    }
+
+    GLuint program = LinkProgram(vs, fs, gs);
+
+    if(program == 0)
+    {
+        std::cerr << "Failed to create shader program for " << name << std::endl;
+	}
+
+	glDeleteShader(vs);
+	glDeleteShader(fs);
+
+    Shader shader;
+    shader.program = program;
+    shader.alive = true;
+
+	Reflect(program, shader.reflection);
+
+    //temp debug print
+    /*
+	std::cout << "Shader Reflection for " << name << ":\n";
+    for (auto& [name, info] : shader.reflection.uniforms) {
+		std::cout << "  Uniform: " << name << " type=" << GLTypeToString(info.type)
+            << " size=" << info.size << " location=" << info.location << "\n";
+    }
+    for (auto& [name, block] : shader.reflection.uniformBlocks) {
+        std::cout <<"  Uniform Block: " << name << " index=" << block.index
+			<< " binding=" << block.binding << " bufferId=" << block.bufferID << " dataSize=" << block.dataSize << "\n";
+        for(auto& field : block.fields) {
+            std::cout << "    Field: " << field.name << " type=" << GLTypeToString(field.type)
+                << " size=" << field.size << " offset=" << field.offset
+                << " arrayStride=" << field.arrayStride << " matrixStride=" << field.matrixStride
+                << " rowMajor=" << field.rowMajor << "\n";
+		}
+    }
+    */
+    return shader;
+}
+
+void ShaderPolicy::Destroy(Shader& shader)
+{
+    if (shader.program != 0)
+    {
+        glDeleteProgram(shader.program);
+        shader.program = 0;
+    }
+    shader.alive = false;
+}
+
+// =========================================================
+// ShaderManager
+// =========================================================
+ShaderManager::ShaderManager()
+{
+	// Give Shader pointer to itself for currentProgram access
+	Shader::_sm = this;
+	ShaderPolicy::_sm = this;
+
+	hasInclude = glNamedStringARB != nullptr && glCompileShaderIncludeARB != nullptr;
+}
+
+void ShaderManager::UseShader(const ShaderHandle& h, GLStateCache* glState)
+{
+    const Shader* shader = Get(h);
+    if (shader && shader->program != currentProgram) {
+        if(!glState || glState->currentShader != h) {
+            if (glState) {
+                glState->currentShader = h;
+            }
+            currentProgram = shader->program;
+            glUseProgram(shader->program);
+		}
+    }
+}
+
+void ShaderManager::UseShader(const Shader& shader)
+{
+    if (shader.program != currentProgram) {
+        currentProgram = shader.program;
+        glUseProgram(shader.program);
+    }
+}
+
+void ShaderManager::UseShader(const std::string& name, GLStateCache* glState) {
+    const Shader* shader = Get(name);
+	auto handle = GetHandle(name);
+    if (shader && shader->program != currentProgram) {
+        if(!glState || glState->currentShader != handle) {
+            if (glState) {
+                glState->currentShader = handle;
+            }
+            currentProgram = shader->program;
+            glUseProgram(shader->program);
+		}
+    }
+}
+
+void ShaderManager::PreloadResources(const std::string& resourceDirectory)
+{
+	std::string shaderDir = "shaders/";
+
+	std::filesystem::path fullDir = std::filesystem::path(resourceDirectory) / shaderDir;
+
+	//first find the defs.glsl file for global definitions and include it in the virtual file system
+    std::string defsPath = (fullDir / "defs.glsl").string();
+    std::cout << "  Loading global shader definitions from: " << defsPath << "\n";
+	std::string defContent = policy.LoadFile(defsPath);
+    if (hasInclude) {
+        glNamedStringARB(GL_SHADER_INCLUDE_ARB, -1, "/defs.glsl", -1, defContent.c_str());
+    }
+    else {
+		defineFileSource = defContent;
+    }
+
+
+	// shaders are stored as directories which inside have the .vert and .frag files
+	// shader will be named after the directory
+    for (const auto& entry : std::filesystem::directory_iterator(fullDir)) {
+        if (entry.is_directory()) {
+            std::string shaderName = entry.path().filename().string();
+            std::string vertexPath = (entry.path() / (shaderName + ".vert")).string();
+            std::string fragmentPath = (entry.path() / (shaderName + ".frag")).string();
+			std::string geometryPath = (entry.path() / (shaderName + ".geom")).string();
+
+            //check if geoemtry shader exists
+            if (!std::filesystem::exists(geometryPath)) {
+				geometryPath = "";
+                std::cout << "  Loading shader: " << shaderName << " ("
+                    << vertexPath << ", " << fragmentPath << ")\n";
+            }
+            else {
+                std::cout << "  Loading shader: " << shaderName << " ("
+                    << vertexPath << ", " << fragmentPath << ", " << geometryPath << ")\n";
+            }
+            ShaderResourceInfo info;
+            info.vertexPath = vertexPath;
+            info.fragmentPath = fragmentPath;
+			info.geometryPath = geometryPath;
+            Load(shaderName, info);
+        }
+	}
+}

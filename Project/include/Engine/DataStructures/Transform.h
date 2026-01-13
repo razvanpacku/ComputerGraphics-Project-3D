@@ -1,0 +1,14 @@
+#pragma once
+#include <glm/glm.hpp>
+#include <glm/gtx/quaternion.hpp>
+
+struct Transform
+{
+	glm::vec3 position{0.0f, 0.0f, 0.0f};
+	glm::quat rotation = glm::quat({ 0.f, 0.f, 0.f });
+	glm::vec3 scale{1.0f, 1.0f, 1.0f};
+	glm::mat4 GetModelMatrix() const;
+
+	glm::mat4 GetGUIModelMatrix(glm::vec2 relativePosition, glm::vec2 relativeSize, glm::vec2 anchor, float screenWidth, float screenHeight) const;
+};
+

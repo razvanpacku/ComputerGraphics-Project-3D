@@ -1,0 +1,11 @@
+{
+    "name": "particle",
+    "shader": "particle",
+    "uniforms": {
+    },
+    "textures": {
+        "tex": "flame.png"
+    },
+    "ubos": {
+    }
+}

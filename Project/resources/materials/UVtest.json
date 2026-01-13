@@ -1,0 +1,11 @@
+{
+    "name": "UVtest",
+    "shader": "flat",
+    "uniforms": {
+    },
+    "textures": {
+        "tex": "dev2.png"
+    },
+    "ubos": {
+    }
+}

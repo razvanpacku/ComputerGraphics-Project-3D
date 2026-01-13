@@ -1,0 +1,19 @@
+{
+    "name": "plastic",
+    "shader": "example",
+    "uniforms": {
+        "receiveShadows": 1
+    },
+    "textures": {
+        "albedo": "dev.png"
+    },
+    "ubos": {
+        "Material": {
+            "shininess": 4.0,
+            "specularStrength": 1.0,
+            "metalicity": 0.0,
+            "overrideMetalness": 1
+        }
+    },
+    "castShadows": true
+}

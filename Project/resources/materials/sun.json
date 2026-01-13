@@ -1,0 +1,12 @@
+{
+    "name": "sun",
+    "shader": "flat",
+    "uniforms": {
+    },
+    "textures": {
+        "tex": "sun.png"
+    },
+    "ubos": {
+    },
+    "isTransparent": true
+}

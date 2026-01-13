@@ -1,0 +1,11 @@
+{
+    "name": "boundingBox",
+    "shader": "boundingBox",
+    "uniforms": {
+        "color": [1, 1, 1]
+    },
+    "textures": {
+    },
+    "ubos": {
+    }
+}
